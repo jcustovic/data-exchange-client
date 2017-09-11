@@ -1,0 +1,16 @@
+app:
+  sftps:
+    -
+      name: testSftp
+      host: localhost
+      port: 8888
+      username: charis
+      password: pass
+      download-pollers:
+        -
+          name: testSftpDownloadPoller
+          download-folder: ${java.io.tmpdir}/sftpClient/downloading
+          output-folder:  ${java.io.tmpdir}/sftpClient/queue
+          remote-input-folder: test-sftp/remote-input
+          regex-filter: .+\.txt$
+          poll-interval-milliseconds: 10000

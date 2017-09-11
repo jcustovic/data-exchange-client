@@ -1,0 +1,47 @@
+app:
+  sftps:
+    -
+      name: localhostSFTP
+      host: localhost
+      port: 8888
+      username: charis
+      password: pass
+    #  private-key:
+    #  private-key-passphrase:
+      upload-pollers:
+        -
+          name: testSftpUploadPoller
+          input-folder: D:\Temp\sftp-outbound-test\input
+          processed-folder: D:\Temp\sftp-outbound-test\processed
+          remote-output-folder: /sftp-outbound-test
+          regex-filter: .+\.xml$
+    #    -
+    #      input-folder: D:\Temp\sftp-outbound-test\input\test2
+    #      processed-folder: D:\Temp\sftp-outbound-test\processed\test2
+    #      remote-folder: /sftp-outbound-test/test2
+    #      regex-filter:
+  ftps:
+    -
+      name: localhostFTP
+      host: localhost
+      port: 12345
+      username: test
+      password: test
+      upload-pollers:
+        -
+          name: testFtpUploadPoller
+          input-folder: D:\Temp\ftp-outbound-test\input
+          processed-folder: D:\Temp\ftp-outbound-test\processed
+          remote-output-folder: /ftp-outbound-test
+          regex-filter: .+\.xml$
+      download-pollers:
+        -
+          name: testFtpDownloadPoller
+          download-folder: D:\Temp\ftp-outbound-test\downloading
+          output-folder: D:\Temp\ftp-outbound-test\queue
+          output-file-name-expression: "'bla_' + payload.lastModified() + payload.name" # Defaults to null which means original filename
+          remote-input-folder: /ftp-input-test
+          regex-filter: .+\.txt$
+          delete-remote-file: false # default is true
+          poll-interval-milliseconds: 30000 # 30s, defaults to 10s
+          #poll-cron: 0 50 * * * ? # Run every 50th min every hour

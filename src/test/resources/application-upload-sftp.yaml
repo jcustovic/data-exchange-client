@@ -1,0 +1,15 @@
+app:
+  sftps:
+    -
+      name: testSftp
+      host: localhost
+      port: 8888
+      username: charis
+      password: pass
+      upload-pollers:
+        -
+          name: testSftpUploadPoller
+          input-folder: ${java.io.tmpdir}/sftpClient/input
+          processed-folder: ${java.io.tmpdir}/sftpClient/processed
+          remote-output-folder: test-sftp/remote-output
+          regex-filter: .+\.txt$

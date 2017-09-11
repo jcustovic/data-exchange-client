@@ -1,0 +1,15 @@
+app:
+  ftps:
+    -
+      name: testFtp
+      host: localhost
+      port: 12345
+      username: test
+      password: test
+      upload-pollers:
+        -
+          name: testFtpUploadPoller
+          input-folder: ${java.io.tmpdir}/ftpClient/input
+          processed-folder: ${java.io.tmpdir}/ftpClient/processed
+          remote-output-folder: test-ftp/remote-output
+          regex-filter: .+\.txt$
