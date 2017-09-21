@@ -21,7 +21,6 @@
     <properties>
         <java.version>1.8</java.version>
 
-        <net.logstash.logback.version>4.9</net.logstash.logback.version>
         <commons-lang3.version>3.5</commons-lang3.version>
 
         <!-- Test -->
