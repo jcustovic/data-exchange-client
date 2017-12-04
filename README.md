@@ -1,6 +1,6 @@
 The project **Data Exchange Client** allows you to connect to SFTP or FTP servers and configure upload and download pullers.
 
-Current stable version: 1.0.0
+Current stable version: 1.0.1
 
 ## How to use
 
@@ -76,6 +76,7 @@ app:
           delete-remote-file: false # default is true
           poll-interval-milliseconds: 30000 # 30s, defaults to 10s
           #poll-cron: 0 50 * * * ? # Run every 50th min every hour
+          #modified-date-after-minutes: 5
 ```
 
 ### All available configuration
@@ -154,6 +155,7 @@ app:
           poll-interval-milliseconds: # defaults to 10s
           poll-cron: # Optional: in case cron is needed for polling instead of fixed interval
           semaphore-file-suffix: # Optional: it will wait for semaphore file before starting to download the file eg. '.sem'
+          modified-date-after-minutes: 5 # Optional: This option will pick only pick up files that have last modified timestamp later than given time
 ```
 
 ### Notes while doing upload / download

@@ -1,10 +1,12 @@
 package com.dataexchange.client.config;
 
 import com.dataexchange.client.domain.ConnectionMonitor;
-import com.jcraft.jsch.ChannelSftp;
 import com.dataexchange.client.infrastructure.ConnectionMonitorThrowsAdvice;
+import com.dataexchange.client.infrastructure.integration.filters.FtpLastModifiedOlderThanFileFilter;
 import com.dataexchange.client.infrastructure.integration.filters.FtpSemaphoreFileFilter;
+import com.dataexchange.client.infrastructure.integration.filters.SftpLastModifiedOlderThanFileFilter;
 import com.dataexchange.client.infrastructure.integration.filters.SftpSemaphoreFileFilter;
+import com.jcraft.jsch.ChannelSftp;
 import org.aopalliance.aop.Advice;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
@@ -128,6 +130,9 @@ public class DynamicConfigurationCreator {
         if (StringUtils.hasText(pollerConfig.getSemaphoreFileSuffix())) {
             chainFileListFilter.addFilter(new SftpSemaphoreFileFilter(pollerConfig.getSemaphoreFileSuffix()));
         }
+        if (pollerConfig.getModifiedDateAfterMinutes() != null) {
+            chainFileListFilter.addFilter(new SftpLastModifiedOlderThanFileFilter(pollerConfig.getModifiedDateAfterMinutes()));
+        }
         if (!pollerConfig.isDeleteRemoteFile()) {
             chainFileListFilter.addFilter(new SftpPersistentAcceptOnceFileListFilter(new SimpleMetadataStore(), ""));
         }
@@ -230,6 +235,9 @@ public class DynamicConfigurationCreator {
         CompositeFileListFilter<FTPFile> chainFileListFilter = new ChainFileListFilter<>();
         if (StringUtils.hasText(pollerConfig.getSemaphoreFileSuffix())) {
             chainFileListFilter.addFilter(new FtpSemaphoreFileFilter(pollerConfig.getSemaphoreFileSuffix()));
+        }
+        if (pollerConfig.getModifiedDateAfterMinutes() != null) {
+            chainFileListFilter.addFilter(new FtpLastModifiedOlderThanFileFilter(pollerConfig.getModifiedDateAfterMinutes()));
         }
         if (!pollerConfig.isDeleteRemoteFile()) {
             chainFileListFilter.addFilter(new FtpPersistentAcceptOnceFileListFilter(new SimpleMetadataStore(), ""));

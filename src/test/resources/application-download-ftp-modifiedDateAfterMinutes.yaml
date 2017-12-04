@@ -1,0 +1,17 @@
+app:
+  ftps:
+    -
+      name: testFtp
+      host: localhost
+      port: 12345
+      username: test
+      password: test
+      download-pollers:
+        -
+          name: testFtpDownloadPollerWithoutDeletingRemoteFile
+          download-folder: ${java.io.tmpdir}/ftpClient/downloading
+          output-folder:  ${java.io.tmpdir}/ftpClient/queue
+          remote-input-folder: test-ftp/remote-input
+          regex-filter: .+
+          modified-date-after-minutes: 5
+          poll-interval-milliseconds: 5000

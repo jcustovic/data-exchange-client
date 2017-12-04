@@ -18,6 +18,7 @@ public class DownloadPollerConfiguration {
     private String semaphoreFileSuffix;
     private Long pollIntervalMilliseconds = 60000L;
     private String pollCron;
+    private Integer modifiedDateAfterMinutes;
 
     public String getName() {
         return name;
@@ -97,5 +98,13 @@ public class DownloadPollerConfiguration {
 
     public void setPollCron(String pollCron) {
         this.pollCron = pollCron;
+    }
+
+    public Integer getModifiedDateAfterMinutes() {
+        return modifiedDateAfterMinutes;
+    }
+
+    public void setModifiedDateAfterMinutes(Integer modifiedDateAfterMinutes) {
+        this.modifiedDateAfterMinutes = modifiedDateAfterMinutes;
     }
 }
