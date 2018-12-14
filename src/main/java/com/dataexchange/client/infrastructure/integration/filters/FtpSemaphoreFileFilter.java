@@ -17,7 +17,7 @@ public class FtpSemaphoreFileFilter extends AbstractFileListFilter<FTPFile> {
     }
 
     @Override
-    protected boolean accept(FTPFile file) {
+    public boolean accept(FTPFile file) {
         synchronized (this.monitor) {
             if (file.getName().endsWith(semaphoreSuffix)) {
                 existingSemaphoreFiles.add(file.getName());

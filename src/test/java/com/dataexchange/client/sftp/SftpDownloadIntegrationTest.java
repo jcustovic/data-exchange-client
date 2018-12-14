@@ -1,7 +1,5 @@
 package com.dataexchange.client.sftp;
 
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import org.assertj.core.util.Arrays;
 import org.junit.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -14,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SftpDownloadIntegrationTest extends SftpDownloadTestAbstract {
 
     @Test(timeout = 20000)
-    public void whenInputRemoteFile_shouldBeDownloadedAndMovedToOutputFolder() throws InterruptedException, SftpException, JSchException {
+    public void whenInputRemoteFile_shouldBeDownloadedAndMovedToOutputFolder() throws InterruptedException {
         if (waitForFilesInFolder(outputFolder)) {
             assertThat(Arrays.isNullOrEmpty(new File(realRemoteFolder).listFiles())).isTrue();
             assertThat(Arrays.isNullOrEmpty(new File(outputFolder).listFiles())).isFalse();

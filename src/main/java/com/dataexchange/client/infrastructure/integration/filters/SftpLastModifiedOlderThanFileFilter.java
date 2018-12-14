@@ -14,7 +14,7 @@ public class SftpLastModifiedOlderThanFileFilter extends AbstractFileListFilter<
     }
 
     @Override
-    protected boolean accept(ChannelSftp.LsEntry file) {
+    public boolean accept(ChannelSftp.LsEntry file) {
         int modifiedTimeInSec = file.getAttrs().getMTime();
         if (modifiedTimeInSec > 0) {
             long currentSeconds = new Date().getTime() / 1000;

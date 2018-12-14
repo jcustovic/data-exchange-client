@@ -1,7 +1,5 @@
 package com.dataexchange.client.sftp;
 
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import org.junit.Test;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -16,8 +14,7 @@ import static org.junit.Assert.fail;
 public class SftpDownloadSemaphoreIntegrationTest extends SftpDownloadTestAbstract {
 
     @Test
-    public void whenRemoteFileWithoutSemaphore_shouldNOTBeDownloadedAndRemoteFileWillStayThere()
-            throws InterruptedException, SftpException, JSchException {
+    public void whenRemoteFileWithoutSemaphore_shouldNOTBeDownloadedAndRemoteFileWillStayThere() throws InterruptedException {
         int i = 0;
         while (i++ < 20) {
             if (!isNullOrEmpty(new File(outputFolder).listFiles())) {
@@ -30,8 +27,8 @@ public class SftpDownloadSemaphoreIntegrationTest extends SftpDownloadTestAbstra
     }
 
     @Test(timeout = 20000)
-    public void whenRemoteFileWithSemaphore_shouldBeDownloadedAndRemoteFileWillStayThere()
-            throws InterruptedException, SftpException, JSchException, IOException {
+    public void whenRemoteFileWithSemaphore_shouldBeDownloadedAndRemoteFileWillStayThere() throws InterruptedException,
+            IOException {
         // Create semaphore file
         File semFile = new File(realRemoteFolder, remoteSourceFile.getName() + downloadPoller.getSemaphoreFileSuffix());
         semFile.createNewFile();

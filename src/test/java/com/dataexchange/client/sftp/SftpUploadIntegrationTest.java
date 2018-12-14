@@ -1,8 +1,6 @@
 package com.dataexchange.client.sftp;
 
 import com.dataexchange.client.config.MainConfiguration;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import com.dataexchange.client.config.UploadPollerConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
@@ -49,7 +47,7 @@ public class SftpUploadIntegrationTest extends SftpTestServer {
     }
 
     @Test(timeout = 20000)
-    public void whenInputFile_shouldBeUploadedAndMovedToProcessedFolder() throws InterruptedException, SftpException, JSchException {
+    public void whenInputFile_shouldBeUploadedAndMovedToProcessedFolder() throws InterruptedException {
         if (waitForFilesInFolder(this.processedFolder)) {
             assertThat(Arrays.isNullOrEmpty(new File(inputFolder).listFiles())).isTrue();
             assertThat(Arrays.isNullOrEmpty(new File(processedFolder).listFiles())).isFalse();

@@ -11,31 +11,31 @@ import org.aopalliance.aop.Advice;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.AfterReturningAdvice;
 import org.springframework.aop.ThrowsAdvice;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.integration.core.MessageSource;
-import org.springframework.integration.dsl.IntegrationFlowBuilder;
-import org.springframework.integration.dsl.IntegrationFlows;
-import org.springframework.integration.dsl.StandardIntegrationFlow;
+import org.springframework.integration.dsl.*;
 import org.springframework.integration.dsl.context.IntegrationFlowContext;
-import org.springframework.integration.dsl.core.PollerSpec;
-import org.springframework.integration.dsl.core.Pollers;
-import org.springframework.integration.dsl.file.FileWritingMessageHandlerSpec;
-import org.springframework.integration.dsl.file.Files;
-import org.springframework.integration.dsl.ftp.Ftp;
-import org.springframework.integration.dsl.ftp.FtpInboundChannelAdapterSpec;
-import org.springframework.integration.dsl.sftp.Sftp;
-import org.springframework.integration.dsl.sftp.SftpInboundChannelAdapterSpec;
 import org.springframework.integration.file.FileReadingMessageSource;
+import org.springframework.integration.file.dsl.FileWritingMessageHandlerSpec;
+import org.springframework.integration.file.dsl.Files;
 import org.springframework.integration.file.filters.*;
 import org.springframework.integration.file.remote.session.CachingSessionFactory;
 import org.springframework.integration.file.support.FileExistsMode;
+import org.springframework.integration.ftp.dsl.Ftp;
+import org.springframework.integration.ftp.dsl.FtpInboundChannelAdapterSpec;
 import org.springframework.integration.ftp.filters.FtpPersistentAcceptOnceFileListFilter;
+import org.springframework.integration.ftp.filters.FtpRegexPatternFileListFilter;
 import org.springframework.integration.ftp.session.DefaultFtpSessionFactory;
 import org.springframework.integration.handler.advice.RequestHandlerRetryAdvice;
 import org.springframework.integration.metadata.SimpleMetadataStore;
+import org.springframework.integration.sftp.dsl.Sftp;
+import org.springframework.integration.sftp.dsl.SftpInboundChannelAdapterSpec;
 import org.springframework.integration.sftp.filters.SftpPersistentAcceptOnceFileListFilter;
+import org.springframework.integration.sftp.filters.SftpRegexPatternFileListFilter;
 import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
@@ -48,6 +48,8 @@ import java.io.File;
 
 @Component
 public class DynamicConfigurationCreator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DynamicConfigurationCreator.class);
 
     @Autowired
     private MainConfiguration configuration;
@@ -108,9 +110,6 @@ public class DynamicConfigurationCreator {
                     .preserveTimestamp(true)
                     .temporaryFileSuffix(".downloading")
                     .remoteDirectory(pollerConfig.getRemoteInputFolder());
-            if (StringUtils.hasText(pollerConfig.getRegexFilter())) {
-                sftpInboundChannelAdapter = sftpInboundChannelAdapter.regexFilter(pollerConfig.getRegexFilter());
-            }
 
             IntegrationFlowBuilder sftpFlowBuilder = IntegrationFlows
                     .from(sftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
@@ -135,6 +134,9 @@ public class DynamicConfigurationCreator {
         }
         if (!pollerConfig.isDeleteRemoteFile()) {
             chainFileListFilter.addFilter(new SftpPersistentAcceptOnceFileListFilter(new SimpleMetadataStore(), ""));
+        }
+        if (StringUtils.hasText(pollerConfig.getRegexFilter())) {
+            chainFileListFilter.addFilter(new SftpRegexPatternFileListFilter(pollerConfig.getRegexFilter()));
         }
 
         return chainFileListFilter;
@@ -173,9 +175,6 @@ public class DynamicConfigurationCreator {
                     .preserveTimestamp(true)
                     .temporaryFileSuffix(".downloading")
                     .remoteDirectory(pollerConfig.getRemoteInputFolder());
-            if (StringUtils.hasText(pollerConfig.getRegexFilter())) {
-                ftpInboundChannelAdapter = ftpInboundChannelAdapter.regexFilter(pollerConfig.getRegexFilter());
-            }
 
             IntegrationFlowBuilder ftpFlowBuilder = IntegrationFlows
                     .from(ftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
@@ -198,14 +197,16 @@ public class DynamicConfigurationCreator {
         }
     }
 
-    private IntegrationFlowBuilder configureDownloadFlowHandle(IntegrationFlowBuilder ftpFlowBuilder,
+    private IntegrationFlowBuilder configureDownloadFlowHandle(IntegrationFlowBuilder flowBuilder,
                                                                DownloadPollerConfiguration pollerConfig) {
         if (StringUtils.hasText(pollerConfig.getSemaphoreFileSuffix())) {
-            return ftpFlowBuilder.<File, Boolean>route(f -> f.getName().endsWith(pollerConfig.getSemaphoreFileSuffix()), mapping ->
+            return flowBuilder.<File, Boolean>route(f -> f.getName().endsWith(pollerConfig.getSemaphoreFileSuffix()), mapping ->
                     mapping
                             .subFlowMapping(true, sf -> sf.handle(message -> {
                                         if (message.getPayload() instanceof File) {
-                                            ((File) message.getPayload()).delete();
+                                            File semFile = (File) message.getPayload();
+                                            boolean deleteResult = semFile.delete();
+                                            LOGGER.debug("Deleting {} ({})", semFile.getAbsolutePath(), deleteResult);
                                         }
                                     })
                             )
@@ -214,7 +215,7 @@ public class DynamicConfigurationCreator {
                             ))
             );
         } else {
-            return ftpFlowBuilder.handle(buildDefaultFileOutboundAdapter(pollerConfig.getOutputFolder(),
+            return flowBuilder.handle(buildDefaultFileOutboundAdapter(pollerConfig.getOutputFolder(),
                     pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice()));
         }
     }
@@ -242,6 +243,9 @@ public class DynamicConfigurationCreator {
         if (!pollerConfig.isDeleteRemoteFile()) {
             chainFileListFilter.addFilter(new FtpPersistentAcceptOnceFileListFilter(new SimpleMetadataStore(), ""));
         }
+        if (StringUtils.hasText(pollerConfig.getRegexFilter())) {
+            chainFileListFilter.addFilter(new FtpRegexPatternFileListFilter(pollerConfig.getRegexFilter()));
+        }
 
         return chainFileListFilter;
     }
@@ -266,7 +270,7 @@ public class DynamicConfigurationCreator {
         CompositeFileListFilter<File> compositeFilter = new CompositeFileListFilter<>();
         compositeFilter.addFilter(new AbstractFileListFilter<File>() {
             @Override
-            protected boolean accept(File file) {
+            public boolean accept(File file) {
                 return !file.isDirectory();
             }
         });

@@ -1,7 +1,5 @@
 package com.dataexchange.client.ftp;
 
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import org.junit.Test;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -13,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class FtpDownloadIntegrationTest extends FtpDownloadTestAbstract {
 
     @Test(timeout = 20000)
-    public void whenInputRemoteFile_shouldBeDownloadedAndMovedToOutputFolder() throws InterruptedException, SftpException, JSchException {
+    public void whenInputRemoteFile_shouldBeDownloadedAndMovedToOutputFolder() throws InterruptedException {
         if (waitForFilesInFolder(outputFolder)) {
             File outputFolderFile = new File(outputFolder);
             assertThat(new File(realRemoteFolder).listFiles()).isNullOrEmpty();

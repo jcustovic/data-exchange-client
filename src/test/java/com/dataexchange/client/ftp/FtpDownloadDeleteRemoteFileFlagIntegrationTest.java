@@ -1,7 +1,5 @@
 package com.dataexchange.client.ftp;
 
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import org.junit.Test;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -13,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class FtpDownloadDeleteRemoteFileFlagIntegrationTest extends FtpDownloadTestAbstract {
 
     @Test(timeout = 20000)
-    public void whenInputRemoteFile_shouldBeDownloadedAndRemoteFileNotDeleted() throws InterruptedException, SftpException, JSchException {
+    public void whenInputRemoteFile_shouldBeDownloadedAndRemoteFileNotDeleted() throws InterruptedException {
         if (waitForFilesInFolder(outputFolder)) {
             assertThat(new File(outputFolder).listFiles()).isNotEmpty();
             assertThat(outputFile).exists();

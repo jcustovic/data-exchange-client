@@ -17,7 +17,7 @@ public class SftpSemaphoreFileFilter extends AbstractFileListFilter<ChannelSftp.
     }
 
     @Override
-    protected boolean accept(ChannelSftp.LsEntry file) {
+    public boolean accept(ChannelSftp.LsEntry file) {
         synchronized (this.monitor) {
             if (file.getFilename().endsWith(semaphoreSuffix)) {
                 existingSemaphoreFiles.add(file.getFilename());

@@ -4,7 +4,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
-import org.apache.sshd.server.scp.ScpCommandFactory;
 import org.apache.sshd.server.subsystem.sftp.SftpSubsystemFactory;
 import org.assertj.core.util.Arrays;
 import org.junit.After;
@@ -36,7 +35,7 @@ public abstract class SftpTestServer {
         sshd.setPort(PORT);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         sshd.setPasswordAuthenticator((username, password, session) -> true);
-        sshd.setCommandFactory(new ScpCommandFactory());
+        //sshd.setCommandFactory(new ScpCommandFactory());
         sshd.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory()));
         Path sftpRootFolderPath = Files.createTempDirectory(SFTP_SERVER_FOLDER);
         sshd.setFileSystemFactory(new VirtualFileSystemFactory(sftpRootFolderPath));

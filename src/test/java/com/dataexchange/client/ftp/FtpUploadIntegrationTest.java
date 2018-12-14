@@ -1,8 +1,6 @@
 package com.dataexchange.client.ftp;
 
 import com.dataexchange.client.config.MainConfiguration;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import com.dataexchange.client.config.UploadPollerConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
@@ -50,7 +48,7 @@ public class FtpUploadIntegrationTest extends FtpTestServer {
     }
 
     @Test(timeout = 20000)
-    public void whenInputFile_shouldBeUploadedAndMovedToProcessedFolder() throws InterruptedException, SftpException, JSchException {
+    public void whenInputFile_shouldBeUploadedAndMovedToProcessedFolder() throws InterruptedException {
         if (waitForFilesInFolder(this.processedFolder)) {
             assertThat(new File(inputFolder).listFiles()).isNullOrEmpty();
             assertThat(new File(processedFolder).listFiles()).isNotEmpty();

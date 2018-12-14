@@ -1,12 +1,9 @@
 package com.dataexchange.client.ftp;
 
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 import org.junit.Test;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
@@ -18,8 +15,7 @@ import static org.junit.Assert.fail;
 public class FtpDownloadModifiedDateAfterIntegrationTest extends FtpDownloadTestAbstract {
 
     @Test
-    public void whenRemoteFileWithoutSemaphore_shouldNOTBeDownloadedAndRemoteFileWillStayThere()
-            throws InterruptedException, SftpException, JSchException {
+    public void whenRemoteFileWithoutSemaphore_shouldNOTBeDownloadedAndRemoteFileWillStayThere() throws InterruptedException {
         int i = 0;
         while (i++ < 20) {
             if (!isNullOrEmpty(new File(outputFolder).listFiles())) {
@@ -32,8 +28,7 @@ public class FtpDownloadModifiedDateAfterIntegrationTest extends FtpDownloadTest
     }
 
     @Test(timeout = 20000)
-    public void whenRemoteFileWithSemaphore_shouldBeDownloadedAndRemoteFileWillStayThere()
-            throws InterruptedException, SftpException, JSchException, IOException {
+    public void whenRemoteFileWithSemaphore_shouldBeDownloadedAndRemoteFileWillStayThere() throws InterruptedException {
         remoteSourceFile.setLastModified(LocalDateTime.now().minusMinutes(5).atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli());
 
         if (waitForFilesInFolder(outputFolder)) {

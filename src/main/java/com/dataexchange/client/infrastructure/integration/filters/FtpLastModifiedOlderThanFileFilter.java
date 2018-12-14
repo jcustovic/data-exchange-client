@@ -14,7 +14,7 @@ public class FtpLastModifiedOlderThanFileFilter extends AbstractFileListFilter<F
     }
 
     @Override
-    protected boolean accept(FTPFile file) {
+    public boolean accept(FTPFile file) {
         long modifiedTimeInSec = file.getTimestamp().getTimeInMillis();
         if (modifiedTimeInSec > 0) {
             long currentSeconds = new Date().getTime();
