@@ -8,12 +8,15 @@ import com.dataexchange.client.infrastructure.integration.filters.SftpLastModifi
 import com.dataexchange.client.infrastructure.integration.filters.SftpSemaphoreFileFilter;
 import com.jcraft.jsch.ChannelSftp;
 import org.aopalliance.aop.Advice;
+import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.aop.AfterReturningAdvice;
+import org.springframework.aop.MethodBeforeAdvice;
 import org.springframework.aop.ThrowsAdvice;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.integration.core.MessageSource;
@@ -30,6 +33,7 @@ import org.springframework.integration.ftp.dsl.FtpInboundChannelAdapterSpec;
 import org.springframework.integration.ftp.filters.FtpPersistentAcceptOnceFileListFilter;
 import org.springframework.integration.ftp.filters.FtpRegexPatternFileListFilter;
 import org.springframework.integration.ftp.session.DefaultFtpSessionFactory;
+import org.springframework.integration.handler.advice.AbstractHandleMessageAdvice;
 import org.springframework.integration.handler.advice.RequestHandlerRetryAdvice;
 import org.springframework.integration.metadata.SimpleMetadataStore;
 import org.springframework.integration.sftp.dsl.Sftp;
@@ -37,6 +41,7 @@ import org.springframework.integration.sftp.dsl.SftpInboundChannelAdapterSpec;
 import org.springframework.integration.sftp.filters.SftpPersistentAcceptOnceFileListFilter;
 import org.springframework.integration.sftp.filters.SftpRegexPatternFileListFilter;
 import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
+import org.springframework.messaging.Message;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.AlwaysRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
@@ -45,6 +50,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
+import java.util.Set;
 
 @Component
 public class DynamicConfigurationCreator {
@@ -89,8 +95,10 @@ public class DynamicConfigurationCreator {
                                     .useTemporaryFileName(true)
                                     .temporaryFileSuffix(".uploading")
                                     .remoteDirectory(pollerConfig.getRemoteOutputFolder()),
-                            conf -> conf.advice(retryAdvice(), moveFileAdvice, connectionSuccessAdvice(sftpConfig.getName()),
-                                    connectionErrorAdvice(sftpConfig.getName())
+                            conf -> conf.advice(encrichLogsWithConnectionInfo(sftpConfig.getName(), sftpConfig.getUsername(),
+                                    pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(),
+                                    clearLogContext(), retryAdvice(), moveFileAdvice,
+                                    connectionSuccessAdvice(sftpConfig.getName()), connectionErrorAdvice(sftpConfig.getName())
                             )
                     ).get();
 
@@ -115,7 +123,8 @@ public class DynamicConfigurationCreator {
                     .from(sftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
                             .maxMessagesPerPoll(100)
                             .errorHandler(e -> handleConnectionError(sftpConfig.getName(), e))
-                            .advice(connectionSuccessAdvice(sftpConfig.getName()))
+                            .advice(encrichLogsWithConnectionInfo(sftpConfig.getName(), sftpConfig.getUsername(),
+                                    pollerConfig.getOutputFolder()), clearLogContext(), connectionSuccessAdvice(sftpConfig.getName()))
                     ));
             sftpFlowBuilder = configureDownloadFlowHandle(sftpFlowBuilder, pollerConfig);
 
@@ -154,7 +163,9 @@ public class DynamicConfigurationCreator {
                                     .useTemporaryFileName(true)
                                     .temporaryFileSuffix(".uploading")
                                     .remoteDirectory(pollerConfig.getRemoteOutputFolder()),
-                            c -> c.advice(retryAdvice(), moveFileAdvice, connectionSuccessAdvice(ftpConfig.getName()),
+                            c -> c.advice(encrichLogsWithConnectionInfo(ftpConfig.getName(), ftpConfig.getUsername(),
+                                    pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(), clearLogContext(), 
+                                    retryAdvice(), moveFileAdvice, connectionSuccessAdvice(ftpConfig.getName()), 
                                     connectionErrorAdvice(ftpConfig.getName())
                             )
                     ).get();
@@ -180,7 +191,8 @@ public class DynamicConfigurationCreator {
                     .from(ftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
                             .maxMessagesPerPoll(100)
                             .errorHandler(e -> handleConnectionError(ftpConfig.getName(), e))
-                            .advice(connectionSuccessAdvice(ftpConfig.getName()))
+                            .advice(encrichLogsWithConnectionInfo(ftpConfig.getName(), ftpConfig.getUsername(),
+                                    pollerConfig.getOutputFolder()), clearLogContext(), connectionSuccessAdvice(ftpConfig.getName()))
                     ));
             ftpFlowBuilder = configureDownloadFlowHandle(ftpFlowBuilder, pollerConfig);
 
@@ -208,15 +220,16 @@ public class DynamicConfigurationCreator {
                                             boolean deleteResult = semFile.delete();
                                             LOGGER.debug("Deleting {} ({})", semFile.getAbsolutePath(), deleteResult);
                                         }
-                                    })
+                                    }, a -> a.advice(enrichLogsContextWithFileInfo()))
                             )
                             .subFlowMapping(false, sf -> sf.handle(buildDefaultFileOutboundAdapter(pollerConfig.getOutputFolder(),
-                                    pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice())
+                                    pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice(),
+                                    enrichLogsContextWithFileInfo())
                             ))
             );
         } else {
             return flowBuilder.handle(buildDefaultFileOutboundAdapter(pollerConfig.getOutputFolder(),
-                    pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice()));
+                    pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice(), enrichLogsContextWithFileInfo()));
         }
     }
 
@@ -335,5 +348,35 @@ public class DynamicConfigurationCreator {
         advice.setRetryTemplate(retryTemplate);
 
         return advice;
+    }
+
+    private AfterReturningAdvice clearLogContext() {
+        return (returnValue, method, args, target) -> MDC.clear();
+    }
+
+    private MethodBeforeAdvice encrichLogsWithConnectionInfo(String connectionName, String username, String folder) {
+        return (method, args, target) -> {
+            String correlationId = MDC.get("correlationId");
+            Set<String> keyValues = StringUtils.commaDelimitedListToSet(correlationId);
+            keyValues.add("connectionName=" + connectionName);
+            keyValues.add("user=" + username);
+            keyValues.add("filepath=" + folder);
+            MDC.put("correlationId", StringUtils.collectionToCommaDelimitedString(keyValues));
+        };
+    }
+
+    private AbstractHandleMessageAdvice enrichLogsContextWithFileInfo() {
+        return new AbstractHandleMessageAdvice() {
+            @Override
+            protected Object doInvoke(MethodInvocation invocation, Message<?> message) throws Throwable {
+                String filename = message.getHeaders().get("file_name", String.class);
+                String correlationId = MDC.get("correlationId");
+                Set<String> keyValues = StringUtils.commaDelimitedListToSet(correlationId);
+                keyValues.add("filename=" + filename);
+                MDC.put("correlationId", StringUtils.collectionToCommaDelimitedString(keyValues));
+
+                return invocation.proceed();
+            }
+        };
     }
 }

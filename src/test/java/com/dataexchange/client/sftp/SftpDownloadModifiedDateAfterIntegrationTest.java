@@ -29,7 +29,7 @@ public class SftpDownloadModifiedDateAfterIntegrationTest extends SftpDownloadTe
     }
 
     @Test(timeout = 20000)
-    public void whenRemoteFileHasModifiedDateThatIsOlderThanSomeMinutes_shouldBeDownloadedAndRemoteFileWillStayThere()
+    public void whenRemoteFileHasModifiedDateThatIsOlderThanSomeMinutes_shouldBeDownloadedAndRemoteFileWillBeRemoved()
             throws InterruptedException {
         remoteSourceFile.setLastModified(LocalDateTime.now().minusMinutes(5).atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli());
 
