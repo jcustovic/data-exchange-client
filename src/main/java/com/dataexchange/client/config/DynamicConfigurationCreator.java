@@ -50,7 +50,8 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
-import java.util.Set;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 
 @Component
 public class DynamicConfigurationCreator {
@@ -95,7 +96,7 @@ public class DynamicConfigurationCreator {
                                     .useTemporaryFileName(true)
                                     .temporaryFileSuffix(".uploading")
                                     .remoteDirectory(pollerConfig.getRemoteOutputFolder()),
-                            conf -> conf.advice(encrichLogsWithConnectionInfo(sftpConfig.getName(), sftpConfig.getUsername(),
+                            conf -> conf.advice(encrichLogsWithConnectionInfo(sftpConfig.getUsername(),
                                     pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(),
                                     clearLogContext(), retryAdvice(), moveFileAdvice,
                                     connectionSuccessAdvice(sftpConfig.getName()), connectionErrorAdvice(sftpConfig.getName())
@@ -123,8 +124,8 @@ public class DynamicConfigurationCreator {
                     .from(sftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
                             .maxMessagesPerPoll(100)
                             .errorHandler(e -> handleConnectionError(sftpConfig.getName(), e))
-                            .advice(encrichLogsWithConnectionInfo(sftpConfig.getName(), sftpConfig.getUsername(),
-                                    pollerConfig.getOutputFolder()), clearLogContext(), connectionSuccessAdvice(sftpConfig.getName()))
+                            .advice(encrichLogsWithConnectionInfo(sftpConfig.getUsername(), pollerConfig.getOutputFolder()), 
+                                    clearLogContext(), connectionSuccessAdvice(sftpConfig.getName()))
                     ));
             sftpFlowBuilder = configureDownloadFlowHandle(sftpFlowBuilder, pollerConfig);
 
@@ -163,9 +164,9 @@ public class DynamicConfigurationCreator {
                                     .useTemporaryFileName(true)
                                     .temporaryFileSuffix(".uploading")
                                     .remoteDirectory(pollerConfig.getRemoteOutputFolder()),
-                            c -> c.advice(encrichLogsWithConnectionInfo(ftpConfig.getName(), ftpConfig.getUsername(),
-                                    pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(), clearLogContext(), 
-                                    retryAdvice(), moveFileAdvice, connectionSuccessAdvice(ftpConfig.getName()), 
+                            c -> c.advice(encrichLogsWithConnectionInfo(ftpConfig.getUsername(),
+                                    pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(), clearLogContext(),
+                                    retryAdvice(), moveFileAdvice, connectionSuccessAdvice(ftpConfig.getName()),
                                     connectionErrorAdvice(ftpConfig.getName())
                             )
                     ).get();
@@ -191,8 +192,8 @@ public class DynamicConfigurationCreator {
                     .from(ftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
                             .maxMessagesPerPoll(100)
                             .errorHandler(e -> handleConnectionError(ftpConfig.getName(), e))
-                            .advice(encrichLogsWithConnectionInfo(ftpConfig.getName(), ftpConfig.getUsername(),
-                                    pollerConfig.getOutputFolder()), clearLogContext(), connectionSuccessAdvice(ftpConfig.getName()))
+                            .advice(encrichLogsWithConnectionInfo(ftpConfig.getUsername(), pollerConfig.getOutputFolder()), 
+                                    clearLogContext(), connectionSuccessAdvice(ftpConfig.getName()))
                     ));
             ftpFlowBuilder = configureDownloadFlowHandle(ftpFlowBuilder, pollerConfig);
 
@@ -354,14 +355,14 @@ public class DynamicConfigurationCreator {
         return (returnValue, method, args, target) -> MDC.clear();
     }
 
-    private MethodBeforeAdvice encrichLogsWithConnectionInfo(String connectionName, String username, String folder) {
+    private MethodBeforeAdvice encrichLogsWithConnectionInfo(String username, String folder) {
         return (method, args, target) -> {
-            String correlationId = MDC.get("correlationId");
-            Set<String> keyValues = StringUtils.commaDelimitedListToSet(correlationId);
-            keyValues.add("connectionName=" + connectionName);
-            keyValues.add("user=" + username);
-            keyValues.add("filepath=" + folder);
-            MDC.put("correlationId", StringUtils.collectionToCommaDelimitedString(keyValues));
+            String correlationId = MDC.get("correlation_id");
+            LinkedHashSet<String> keyValues = new LinkedHashSet<>(Arrays.asList(
+                    StringUtils.delimitedListToStringArray(correlationId, ";")));
+            keyValues.add("username=" + username);
+            keyValues.add("file_path=" + folder);
+            MDC.put("correlation_id", StringUtils.collectionToDelimitedString(keyValues, ";"));
         };
     }
 
@@ -370,10 +371,11 @@ public class DynamicConfigurationCreator {
             @Override
             protected Object doInvoke(MethodInvocation invocation, Message<?> message) throws Throwable {
                 String filename = message.getHeaders().get("file_name", String.class);
-                String correlationId = MDC.get("correlationId");
-                Set<String> keyValues = StringUtils.commaDelimitedListToSet(correlationId);
-                keyValues.add("filename=" + filename);
-                MDC.put("correlationId", StringUtils.collectionToCommaDelimitedString(keyValues));
+                String correlationId = MDC.get("correlation_id");
+                LinkedHashSet<String> keyValues = new LinkedHashSet<>(Arrays.asList(
+                        StringUtils.delimitedListToStringArray(correlationId, ";")));
+                keyValues.add("file_name=" + filename);
+                MDC.put("correlation_id", StringUtils.collectionToDelimitedString(keyValues, ";"));
 
                 return invocation.proceed();
             }

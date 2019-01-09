@@ -18,6 +18,5 @@ public class ErrorHandler implements MessageHandler {
 
         LOGGER.error(ExceptionUtils.getRootCauseMessage(originalError), originalError);
     }
-
 }
 

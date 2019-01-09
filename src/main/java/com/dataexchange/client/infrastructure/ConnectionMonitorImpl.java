@@ -44,7 +44,8 @@ public class ConnectionMonitorImpl implements ConnectionMonitor {
         return Collections.unmodifiableMap(connections);
     }
 
-    private ConnectionStatus findConnectionStatus(String connectionName) {
+    @Override
+    public ConnectionStatus findConnectionStatus(String connectionName) {
         ConnectionStatus connectionStatus = connections.get(connectionName);
         if (connectionStatus == null) {
             throw new NoConnection("No connection found with name " + connectionName);

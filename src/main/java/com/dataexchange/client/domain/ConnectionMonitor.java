@@ -13,4 +13,6 @@ public interface ConnectionMonitor {
     void down(String connectionName, Throwable e);
 
     Map<String, ConnectionStatus> getConnectionStatuses();
+
+    ConnectionStatus findConnectionStatus(String connectionName);
 }
