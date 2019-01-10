@@ -1,6 +1,6 @@
 package com.dataexchange.client.config;
 
-import org.hibernate.validator.constraints.NotEmpty;
+import javax.validation.constraints.NotEmpty;
 
 public class DownloadPollerConfiguration {
 

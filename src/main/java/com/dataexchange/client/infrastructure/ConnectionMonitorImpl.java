@@ -17,7 +17,7 @@ public class ConnectionMonitorImpl implements ConnectionMonitor {
     private final Map<String, ConnectionStatus> connections;
 
     public ConnectionMonitorImpl() {
-        connections = Collections.synchronizedMap(new HashMap<String, ConnectionStatus>());
+        connections = Collections.synchronizedMap(new HashMap<>());
     }
 
     @Override

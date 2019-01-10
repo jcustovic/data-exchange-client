@@ -1,5 +1,0 @@
-spring:
-  application:
-    group: managed_file_transfer
-    name: fileTransferClient
-    instance: ${spring.application.name}_${random.int}

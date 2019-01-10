@@ -1,9 +1,9 @@
 package com.dataexchange.client.config;
 
-import org.hibernate.validator.constraints.NotEmpty;
 import org.springframework.core.io.Resource;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotEmpty;
 import java.util.ArrayList;
 import java.util.List;
 
