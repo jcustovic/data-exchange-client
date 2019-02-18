@@ -158,6 +158,41 @@ app:
           modified-date-after-minutes: 5 # Optional: This option will pick only pick up files that have last modified timestamp later than given time
 ```
 
+#### storing to S3 instead of filesystem
+```yaml
+app:
+  sftps: # or ftp
+    -
+      download-pollers:
+        -
+          ...
+          s3-configuration:
+            input-folder: ${java.io.tmpdir}/sftpClient/queue
+            bucketName:
+            aws-region:
+            aws-account:
+            aws-accessKey:
+            aws-secretKey:
+            aws-role:
+            server-side-encryption: true
+```
+#### zipping section:
+
+Where _input folder is the output of the download poller config_
+```yaml  
+app:
+  sftps: # or ftp
+    -
+      download-pollers:
+        -
+          ...
+          zip-configuration:
+            min-items-to-zip: 100
+            output-folder: ${java.io.tmpdir}/sftpClient/queue
+            pattern: pictures-%s.tarz
+```
+
+
 ### Notes while doing upload / download
 
 When the app is uploading files it will suffix the original file being uploaded with **.uploading** and when the file is uploaded fully it will rename it back to the original file. So it is important to no start processing the file on the other end that has a suffix **.uploading**.

@@ -1,7 +1,9 @@
 package com.dataexchange.client.sftp;
 
-import com.dataexchange.client.config.MainConfiguration;
-import com.dataexchange.client.config.UploadPollerConfiguration;
+import com.dataexchange.client.config.model.MainConfiguration;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
+import com.dataexchange.client.config.model.UploadPollerConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
 import org.junit.After;

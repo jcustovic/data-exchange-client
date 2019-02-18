@@ -21,13 +21,15 @@
     <properties>
         <java.version>1.8</java.version>
 
-        <!-- Normally using >${spring.version} should work, but spring boot is a bit ahead of integration so we need to manually 
+        <!-- Normally using >${spring.version} should work, but spring boot is a bit ahead of integration so we need to manually
              specify lower version of spring 
         -->
         <spring.sftp.version>5.1.1.RELEASE</spring.sftp.version>
         <spring.ftp.version>5.1.1.RELEASE</spring.ftp.version>
         
         <commons-lang3.version>3.8.1</commons-lang3.version>
+        <spring-integration-aws.version>2.0.1.RELEASE</spring-integration-aws.version>
+        <com.amazonaws.sdk>1.11.336</com.amazonaws.sdk>
 
         <!-- Test -->
         <org.apache.sshd.version>2.1.0</org.apache.sshd.version>
@@ -61,6 +63,17 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-aws</artifactId>
+            <version>${spring-integration-aws.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-zip</artifactId>
+            <version>1.0.2.RELEASE</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
@@ -68,6 +81,18 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
+        <!-- AWS -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${com.amazonaws.sdk}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk</artifactId>
+            <version>${com.amazonaws.sdk}</version>
         </dependency>
 
         <dependency>

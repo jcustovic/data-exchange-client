@@ -1,4 +1,4 @@
-package com.dataexchange.client.config;
+package com.dataexchange.client.config.model;
 
 import javax.validation.constraints.NotEmpty;
 
@@ -19,6 +19,9 @@ public class DownloadPollerConfiguration {
     private Long pollIntervalMilliseconds = 60000L;
     private String pollCron;
     private Integer modifiedDateAfterMinutes;
+
+    private S3Configuration s3Configuration;
+    private ZipConfiguration zipConfiguration;
 
     public String getName() {
         return name;
@@ -106,5 +109,21 @@ public class DownloadPollerConfiguration {
 
     public void setModifiedDateAfterMinutes(Integer modifiedDateAfterMinutes) {
         this.modifiedDateAfterMinutes = modifiedDateAfterMinutes;
+    }
+
+    public S3Configuration getS3Configuration() {
+        return s3Configuration;
+    }
+
+    public void setS3Configuration(S3Configuration s3Configuration) {
+        this.s3Configuration = s3Configuration;
+    }
+
+    public ZipConfiguration getZipConfiguration() {
+        return zipConfiguration;
+    }
+
+    public void setZipConfiguration(ZipConfiguration zipConfiguration) {
+        this.zipConfiguration = zipConfiguration;
     }
 }

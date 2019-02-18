@@ -1,5 +1,8 @@
 package com.dataexchange.client.config;
 
+import com.dataexchange.client.config.flows.S3Flow;
+import com.dataexchange.client.config.flows.ZipFlow;
+import com.dataexchange.client.config.model.*;
 import com.dataexchange.client.domain.ConnectionMonitor;
 import com.dataexchange.client.infrastructure.ConnectionMonitorThrowsAdvice;
 import com.dataexchange.client.infrastructure.integration.filters.FtpLastModifiedOlderThanFileFilter;
@@ -66,6 +69,10 @@ public class DynamicConfigurationCreator {
     private Advice moveFileAdvice;
     @Autowired
     private ConnectionMonitor connectionMonitor;
+    @Autowired
+    private S3Flow s3Flow;
+    @Autowired
+    private ZipFlow zipFlow;
 
     @PostConstruct
     public void setup() {
@@ -131,6 +138,13 @@ public class DynamicConfigurationCreator {
 
             String beanName = "sftpDownloadFlow-" + pollerConfig.getName();
             integrationFlowContext.registration(sftpFlowBuilder.get()).id(beanName).autoStartup(true).register();
+
+            if (pollerConfig.getS3Configuration() != null) {
+                s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration());
+            }
+            if (pollerConfig.getZipConfiguration() != null) {
+                zipFlow.setup(pollerConfig.getOutputFolder(), pollerConfig.getName(), pollerConfig.getZipConfiguration());
+            }
         }
     }
 
@@ -152,8 +166,7 @@ public class DynamicConfigurationCreator {
         return chainFileListFilter;
     }
 
-    private void createAndRegisterUploadFtpFlowBeans(CachingSessionFactory ftpSessionFactory,
-                                                     FtpPollerConfiguration ftpConfig) {
+    private void createAndRegisterUploadFtpFlowBeans(CachingSessionFactory ftpSessionFactory, FtpPollerConfiguration ftpConfig) {
         for (UploadPollerConfiguration pollerConfig : ftpConfig.getUploadPollers()) {
             StandardIntegrationFlow ftpFlow = IntegrationFlows
                     .from(fileMessageSource(pollerConfig.getInputFolder(), pollerConfig.getRegexFilter()),
@@ -176,8 +189,7 @@ public class DynamicConfigurationCreator {
         }
     }
 
-    private void createAndRegisterDownloadFtpFlowBeans(CachingSessionFactory ftpSessionFactory,
-                                                       FtpPollerConfiguration ftpConfig) {
+    private void createAndRegisterDownloadFtpFlowBeans(CachingSessionFactory ftpSessionFactory, FtpPollerConfiguration ftpConfig) {
         for (DownloadPollerConfiguration pollerConfig : ftpConfig.getDownloadPollers()) {
             CompositeFileListFilter<FTPFile> filters = buildFtpFilters(pollerConfig);
             FtpInboundChannelAdapterSpec ftpInboundChannelAdapter = Ftp.inboundAdapter(ftpSessionFactory)
