@@ -17,7 +17,7 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.util.function.Consumer;
 
-import static com.dataexchange.client.infrastructure.integration.util.PollerConfig.minutesPoller;
+import static com.dataexchange.client.infrastructure.integration.PollerConfig.minutesPoller;
 import static java.time.format.DateTimeFormatter.ofPattern;
 
 @Component

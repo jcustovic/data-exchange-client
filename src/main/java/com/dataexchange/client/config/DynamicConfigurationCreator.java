@@ -1,78 +1,40 @@
 package com.dataexchange.client.config;
 
+import com.dataexchange.client.config.flows.FtpFlow;
 import com.dataexchange.client.config.flows.S3Flow;
+import com.dataexchange.client.config.flows.SftpFlow;
 import com.dataexchange.client.config.flows.ZipFlow;
-import com.dataexchange.client.config.model.*;
+import com.dataexchange.client.config.model.DownloadPollerConfiguration;
+import com.dataexchange.client.config.model.FtpPollerConfiguration;
+import com.dataexchange.client.config.model.MainConfiguration;
+import com.dataexchange.client.config.model.SftpPollerConfiguration;
 import com.dataexchange.client.domain.ConnectionMonitor;
-import com.dataexchange.client.infrastructure.ConnectionMonitorThrowsAdvice;
-import com.dataexchange.client.infrastructure.integration.filters.FtpLastModifiedOlderThanFileFilter;
-import com.dataexchange.client.infrastructure.integration.filters.FtpSemaphoreFileFilter;
-import com.dataexchange.client.infrastructure.integration.filters.SftpLastModifiedOlderThanFileFilter;
-import com.dataexchange.client.infrastructure.integration.filters.SftpSemaphoreFileFilter;
-import com.jcraft.jsch.ChannelSftp;
-import org.aopalliance.aop.Advice;
-import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
-import org.apache.commons.net.ftp.FTPFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-import org.springframework.aop.AfterReturningAdvice;
-import org.springframework.aop.MethodBeforeAdvice;
-import org.springframework.aop.ThrowsAdvice;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.integration.core.MessageSource;
-import org.springframework.integration.dsl.*;
-import org.springframework.integration.dsl.context.IntegrationFlowContext;
-import org.springframework.integration.file.FileReadingMessageSource;
-import org.springframework.integration.file.dsl.FileWritingMessageHandlerSpec;
-import org.springframework.integration.file.dsl.Files;
-import org.springframework.integration.file.filters.*;
 import org.springframework.integration.file.remote.session.CachingSessionFactory;
-import org.springframework.integration.file.support.FileExistsMode;
-import org.springframework.integration.ftp.dsl.Ftp;
-import org.springframework.integration.ftp.dsl.FtpInboundChannelAdapterSpec;
-import org.springframework.integration.ftp.filters.FtpPersistentAcceptOnceFileListFilter;
-import org.springframework.integration.ftp.filters.FtpRegexPatternFileListFilter;
 import org.springframework.integration.ftp.session.DefaultFtpSessionFactory;
-import org.springframework.integration.handler.advice.AbstractHandleMessageAdvice;
-import org.springframework.integration.handler.advice.RequestHandlerRetryAdvice;
-import org.springframework.integration.metadata.SimpleMetadataStore;
-import org.springframework.integration.sftp.dsl.Sftp;
-import org.springframework.integration.sftp.dsl.SftpInboundChannelAdapterSpec;
-import org.springframework.integration.sftp.filters.SftpPersistentAcceptOnceFileListFilter;
-import org.springframework.integration.sftp.filters.SftpRegexPatternFileListFilter;
 import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
-import org.springframework.messaging.Message;
-import org.springframework.retry.backoff.ExponentialBackOffPolicy;
-import org.springframework.retry.policy.AlwaysRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
 
 @Component
 public class DynamicConfigurationCreator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DynamicConfigurationCreator.class);
-
     @Autowired
     private MainConfiguration configuration;
-    @Autowired
-    private IntegrationFlowContext integrationFlowContext;
-    @Autowired
-    private Advice moveFileAdvice;
     @Autowired
     private ConnectionMonitor connectionMonitor;
     @Autowired
     private S3Flow s3Flow;
     @Autowired
     private ZipFlow zipFlow;
+    @Autowired
+    private SftpFlow sftpFlow;
+    @Autowired
+    private FtpFlow ftpFlow;
 
     @PostConstruct
     public void setup() {
@@ -91,53 +53,14 @@ public class DynamicConfigurationCreator {
         }
     }
 
-    private void createAndRegisterUploadSftpFlowBeans(CachingSessionFactory sftpSessionFactory,
-                                                      SftpPollerConfiguration sftpConfig) {
-        for (UploadPollerConfiguration pollerConfig : sftpConfig.getUploadPollers()) {
-            StandardIntegrationFlow sftpFlow = IntegrationFlows
-                    .from(fileMessageSource(pollerConfig.getInputFolder(), pollerConfig.getRegexFilter()),
-                            conf -> conf.poller(Pollers.fixedRate(10000).maxMessagesPerPoll(100)))
-                    .enrichHeaders(h -> h.header("destination_folder", pollerConfig.getProcessedFolder()))
-                    .handle(Sftp.outboundAdapter(sftpSessionFactory)
-                                    .autoCreateDirectory(true)
-                                    .useTemporaryFileName(true)
-                                    .temporaryFileSuffix(".uploading")
-                                    .remoteDirectory(pollerConfig.getRemoteOutputFolder()),
-                            conf -> conf.advice(encrichLogsWithConnectionInfo(sftpConfig.getUsername(),
-                                    pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(),
-                                    clearLogContext(), retryAdvice(), moveFileAdvice,
-                                    connectionSuccessAdvice(sftpConfig.getName()), connectionErrorAdvice(sftpConfig.getName())
-                            )
-                    ).get();
-
-            String beanName = "sftpUploadFlow-" + pollerConfig.getName();
-            integrationFlowContext.registration(sftpFlow).id(beanName).autoStartup(true).register();
-        }
+    private void createAndRegisterUploadSftpFlowBeans(CachingSessionFactory sftpSessionFactory, SftpPollerConfiguration sftpConfig) {
+        sftpConfig.getUploadPollers()
+                .forEach(config -> sftpFlow.uploadSetup(sftpSessionFactory, config, sftpConfig.getName(), sftpConfig.getUsername()));
     }
 
-    private void createAndRegisterDownloadSftpFlowBeans(CachingSessionFactory sftpSessionFactory,
-                                                        SftpPollerConfiguration sftpConfig) {
+    private void createAndRegisterDownloadSftpFlowBeans(CachingSessionFactory sftpSessionFactory, SftpPollerConfiguration sftpConfig) {
         for (DownloadPollerConfiguration pollerConfig : sftpConfig.getDownloadPollers()) {
-            CompositeFileListFilter<ChannelSftp.LsEntry> filters = buildSftpFilters(pollerConfig);
-            SftpInboundChannelAdapterSpec sftpInboundChannelAdapter = Sftp.inboundAdapter(sftpSessionFactory)
-                    .localDirectory(new File(pollerConfig.getDownloadFolder()))
-                    .deleteRemoteFiles(pollerConfig.isDeleteRemoteFile())
-                    .filter(filters)
-                    .preserveTimestamp(true)
-                    .temporaryFileSuffix(".downloading")
-                    .remoteDirectory(pollerConfig.getRemoteInputFolder());
-
-            IntegrationFlowBuilder sftpFlowBuilder = IntegrationFlows
-                    .from(sftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
-                            .maxMessagesPerPoll(100)
-                            .errorHandler(e -> handleConnectionError(sftpConfig.getName(), e))
-                            .advice(encrichLogsWithConnectionInfo(sftpConfig.getUsername(), pollerConfig.getOutputFolder()), 
-                                    clearLogContext(), connectionSuccessAdvice(sftpConfig.getName()))
-                    ));
-            sftpFlowBuilder = configureDownloadFlowHandle(sftpFlowBuilder, pollerConfig);
-
-            String beanName = "sftpDownloadFlow-" + pollerConfig.getName();
-            integrationFlowContext.registration(sftpFlowBuilder.get()).id(beanName).autoStartup(true).register();
+            sftpFlow.downloadSetup(sftpSessionFactory, pollerConfig, sftpConfig.getName(), sftpConfig.getUsername());
 
             if (pollerConfig.getS3Configuration() != null) {
                 s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration());
@@ -148,166 +71,22 @@ public class DynamicConfigurationCreator {
         }
     }
 
-    private CompositeFileListFilter<ChannelSftp.LsEntry> buildSftpFilters(DownloadPollerConfiguration pollerConfig) {
-        CompositeFileListFilter<ChannelSftp.LsEntry> chainFileListFilter = new ChainFileListFilter<>();
-        if (StringUtils.hasText(pollerConfig.getSemaphoreFileSuffix())) {
-            chainFileListFilter.addFilter(new SftpSemaphoreFileFilter(pollerConfig.getSemaphoreFileSuffix()));
-        }
-        if (pollerConfig.getModifiedDateAfterMinutes() != null) {
-            chainFileListFilter.addFilter(new SftpLastModifiedOlderThanFileFilter(pollerConfig.getModifiedDateAfterMinutes()));
-        }
-        if (!pollerConfig.isDeleteRemoteFile()) {
-            chainFileListFilter.addFilter(new SftpPersistentAcceptOnceFileListFilter(new SimpleMetadataStore(), ""));
-        }
-        if (StringUtils.hasText(pollerConfig.getRegexFilter())) {
-            chainFileListFilter.addFilter(new SftpRegexPatternFileListFilter(pollerConfig.getRegexFilter()));
-        }
-
-        return chainFileListFilter;
-    }
-
     private void createAndRegisterUploadFtpFlowBeans(CachingSessionFactory ftpSessionFactory, FtpPollerConfiguration ftpConfig) {
-        for (UploadPollerConfiguration pollerConfig : ftpConfig.getUploadPollers()) {
-            StandardIntegrationFlow ftpFlow = IntegrationFlows
-                    .from(fileMessageSource(pollerConfig.getInputFolder(), pollerConfig.getRegexFilter()),
-                            conf -> conf.poller(Pollers.fixedRate(10000).maxMessagesPerPoll(100)))
-                    .enrichHeaders(h -> h.header("destination_folder", pollerConfig.getProcessedFolder()))
-                    .handle(Ftp.outboundAdapter(ftpSessionFactory)
-                                    .autoCreateDirectory(true)
-                                    .useTemporaryFileName(true)
-                                    .temporaryFileSuffix(".uploading")
-                                    .remoteDirectory(pollerConfig.getRemoteOutputFolder()),
-                            c -> c.advice(encrichLogsWithConnectionInfo(ftpConfig.getUsername(),
-                                    pollerConfig.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(), clearLogContext(),
-                                    retryAdvice(), moveFileAdvice, connectionSuccessAdvice(ftpConfig.getName()),
-                                    connectionErrorAdvice(ftpConfig.getName())
-                            )
-                    ).get();
-
-            String beanName = "ftpUploadFlow-" + pollerConfig.getName();
-            integrationFlowContext.registration(ftpFlow).id(beanName).autoStartup(true).register();
-        }
+        ftpConfig.getUploadPollers()
+                .forEach(config -> ftpFlow.uploadSetup(ftpSessionFactory, config, ftpConfig.getName(), ftpConfig.getUsername()));
     }
 
     private void createAndRegisterDownloadFtpFlowBeans(CachingSessionFactory ftpSessionFactory, FtpPollerConfiguration ftpConfig) {
         for (DownloadPollerConfiguration pollerConfig : ftpConfig.getDownloadPollers()) {
-            CompositeFileListFilter<FTPFile> filters = buildFtpFilters(pollerConfig);
-            FtpInboundChannelAdapterSpec ftpInboundChannelAdapter = Ftp.inboundAdapter(ftpSessionFactory)
-                    .localDirectory(new File(pollerConfig.getDownloadFolder()))
-                    .deleteRemoteFiles(pollerConfig.isDeleteRemoteFile())
-                    .filter(filters)
-                    .preserveTimestamp(true)
-                    .temporaryFileSuffix(".downloading")
-                    .remoteDirectory(pollerConfig.getRemoteInputFolder());
+            ftpFlow.downloadSetup(ftpSessionFactory, pollerConfig, ftpConfig.getName(), ftpConfig.getUsername());
 
-            IntegrationFlowBuilder ftpFlowBuilder = IntegrationFlows
-                    .from(ftpInboundChannelAdapter, conf -> conf.poller(configurePoller(pollerConfig)
-                            .maxMessagesPerPoll(100)
-                            .errorHandler(e -> handleConnectionError(ftpConfig.getName(), e))
-                            .advice(encrichLogsWithConnectionInfo(ftpConfig.getUsername(), pollerConfig.getOutputFolder()), 
-                                    clearLogContext(), connectionSuccessAdvice(ftpConfig.getName()))
-                    ));
-            ftpFlowBuilder = configureDownloadFlowHandle(ftpFlowBuilder, pollerConfig);
-
-            String beanName = "ftpDownloadFlow-" + pollerConfig.getName();
-            integrationFlowContext.registration(ftpFlowBuilder.get()).id(beanName).autoStartup(true).register();
-        }
-    }
-
-    private PollerSpec configurePoller(DownloadPollerConfiguration pollerConfig) {
-        if (StringUtils.hasText(pollerConfig.getPollCron())) {
-            return Pollers.cron(pollerConfig.getPollCron());
-        } else {
-            return Pollers.fixedRate(pollerConfig.getPollIntervalMilliseconds());
-        }
-    }
-
-    private IntegrationFlowBuilder configureDownloadFlowHandle(IntegrationFlowBuilder flowBuilder,
-                                                               DownloadPollerConfiguration pollerConfig) {
-        if (StringUtils.hasText(pollerConfig.getSemaphoreFileSuffix())) {
-            return flowBuilder.<File, Boolean>route(f -> f.getName().endsWith(pollerConfig.getSemaphoreFileSuffix()), mapping ->
-                    mapping
-                            .subFlowMapping(true, sf -> sf.handle(message -> {
-                                        if (message.getPayload() instanceof File) {
-                                            File semFile = (File) message.getPayload();
-                                            boolean deleteResult = semFile.delete();
-                                            LOGGER.debug("Deleting {} ({})", semFile.getAbsolutePath(), deleteResult);
-                                        }
-                                    }, a -> a.advice(enrichLogsContextWithFileInfo()))
-                            )
-                            .subFlowMapping(false, sf -> sf.handle(buildDefaultFileOutboundAdapter(pollerConfig.getOutputFolder(),
-                                    pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice(),
-                                    enrichLogsContextWithFileInfo())
-                            ))
-            );
-        } else {
-            return flowBuilder.handle(buildDefaultFileOutboundAdapter(pollerConfig.getOutputFolder(),
-                    pollerConfig.getOutputFileNameExpression()), a -> a.advice(retryAdvice(), enrichLogsContextWithFileInfo()));
-        }
-    }
-
-    private FileWritingMessageHandlerSpec buildDefaultFileOutboundAdapter(String outputFolder, String fileNameExpression) {
-        FileWritingMessageHandlerSpec outbountAdapter = Files.outboundAdapter(new File(outputFolder))
-                .fileExistsMode(FileExistsMode.REPLACE)
-                .deleteSourceFiles(true);
-
-        if (StringUtils.hasText(fileNameExpression)) {
-            outbountAdapter.fileNameExpression(fileNameExpression);
-        }
-
-        return outbountAdapter;
-    }
-
-    private CompositeFileListFilter<FTPFile> buildFtpFilters(DownloadPollerConfiguration pollerConfig) {
-        CompositeFileListFilter<FTPFile> chainFileListFilter = new ChainFileListFilter<>();
-        if (StringUtils.hasText(pollerConfig.getSemaphoreFileSuffix())) {
-            chainFileListFilter.addFilter(new FtpSemaphoreFileFilter(pollerConfig.getSemaphoreFileSuffix()));
-        }
-        if (pollerConfig.getModifiedDateAfterMinutes() != null) {
-            chainFileListFilter.addFilter(new FtpLastModifiedOlderThanFileFilter(pollerConfig.getModifiedDateAfterMinutes()));
-        }
-        if (!pollerConfig.isDeleteRemoteFile()) {
-            chainFileListFilter.addFilter(new FtpPersistentAcceptOnceFileListFilter(new SimpleMetadataStore(), ""));
-        }
-        if (StringUtils.hasText(pollerConfig.getRegexFilter())) {
-            chainFileListFilter.addFilter(new FtpRegexPatternFileListFilter(pollerConfig.getRegexFilter()));
-        }
-
-        return chainFileListFilter;
-    }
-
-    private AfterReturningAdvice connectionSuccessAdvice(final String connectionName) {
-        return (returnValue, method, args, target) -> handleConnectionUp(connectionName);
-    }
-
-    private void handleConnectionError(String name, Throwable e) {
-        connectionMonitor.down(name, e);
-    }
-
-    private void handleConnectionUp(String name) {
-        connectionMonitor.up(name);
-    }
-
-    private MessageSource<File> fileMessageSource(String path, String regexFilter) {
-        FileReadingMessageSource source = new FileReadingMessageSource();
-        source.setDirectory(new File(path));
-        source.setAutoCreateDirectory(true);
-
-        CompositeFileListFilter<File> compositeFilter = new CompositeFileListFilter<>();
-        compositeFilter.addFilter(new AbstractFileListFilter<File>() {
-            @Override
-            public boolean accept(File file) {
-                return !file.isDirectory();
+            if (pollerConfig.getS3Configuration() != null) {
+                s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration());
             }
-        });
-        compositeFilter.addFilter(new IgnoreHiddenFileListFilter());
-        if (StringUtils.hasText(regexFilter)) {
-            compositeFilter.addFilter(new RegexPatternFileListFilter(regexFilter));
+            if (pollerConfig.getZipConfiguration() != null) {
+                zipFlow.setup(pollerConfig.getOutputFolder(), pollerConfig.getName(), pollerConfig.getZipConfiguration());
+            }
         }
-        compositeFilter.addFilter(new AcceptOnceFileListFilter<>());
-        source.setFilter(compositeFilter);
-
-        return source;
     }
 
     private CachingSessionFactory sftpSessionFactory(SftpPollerConfiguration sftpPollerConfiguration) {
@@ -345,52 +124,4 @@ public class DynamicConfigurationCreator {
         return new CachingSessionFactory(ftpSessionFactory, 5);
     }
 
-    private ThrowsAdvice connectionErrorAdvice(String connectionName) {
-        return new ConnectionMonitorThrowsAdvice(connectionName, connectionMonitor);
-    }
-
-    private Advice retryAdvice() {
-        RequestHandlerRetryAdvice advice = new RequestHandlerRetryAdvice();
-
-        RetryTemplate retryTemplate = new RetryTemplate();
-        ExponentialBackOffPolicy exponentialBackOffPolicy = new ExponentialBackOffPolicy();
-        exponentialBackOffPolicy.setInitialInterval(10_000);
-        exponentialBackOffPolicy.setMaxInterval(60_000);
-        retryTemplate.setBackOffPolicy(exponentialBackOffPolicy);
-        retryTemplate.setRetryPolicy(new AlwaysRetryPolicy());
-        advice.setRetryTemplate(retryTemplate);
-
-        return advice;
-    }
-
-    private AfterReturningAdvice clearLogContext() {
-        return (returnValue, method, args, target) -> MDC.clear();
-    }
-
-    private MethodBeforeAdvice encrichLogsWithConnectionInfo(String username, String folder) {
-        return (method, args, target) -> {
-            String correlationId = MDC.get("correlation_id");
-            LinkedHashSet<String> keyValues = new LinkedHashSet<>(Arrays.asList(
-                    StringUtils.delimitedListToStringArray(correlationId, ";")));
-            keyValues.add("username=" + username);
-            keyValues.add("file_path=" + folder);
-            MDC.put("correlation_id", StringUtils.collectionToDelimitedString(keyValues, ";"));
-        };
-    }
-
-    private AbstractHandleMessageAdvice enrichLogsContextWithFileInfo() {
-        return new AbstractHandleMessageAdvice() {
-            @Override
-            protected Object doInvoke(MethodInvocation invocation, Message<?> message) throws Throwable {
-                String filename = message.getHeaders().get("file_name", String.class);
-                String correlationId = MDC.get("correlation_id");
-                LinkedHashSet<String> keyValues = new LinkedHashSet<>(Arrays.asList(
-                        StringUtils.delimitedListToStringArray(correlationId, ";")));
-                keyValues.add("file_name=" + filename);
-                MDC.put("correlation_id", StringUtils.collectionToDelimitedString(keyValues, ";"));
-
-                return invocation.proceed();
-            }
-        };
-    }
 }

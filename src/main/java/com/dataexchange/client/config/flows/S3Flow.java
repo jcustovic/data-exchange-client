@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 
 import static com.amazonaws.services.s3.transfer.Transfer.TransferState.Completed;
-import static com.dataexchange.client.infrastructure.integration.util.PollerConfig.secondsPoller;
+import static com.dataexchange.client.infrastructure.integration.PollerConfig.secondsPoller;
 
 @Component
 public class S3Flow {
