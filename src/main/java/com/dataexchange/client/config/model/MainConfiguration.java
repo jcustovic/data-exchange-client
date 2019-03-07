@@ -1,4 +1,4 @@
-package com.dataexchange.client.config;
+package com.dataexchange.client.config.model;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

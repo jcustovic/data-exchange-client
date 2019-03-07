@@ -1,4 +1,4 @@
-package com.dataexchange.client.config;
+package com.dataexchange.client.config.model;
 
 import javax.validation.constraints.NotEmpty;
 

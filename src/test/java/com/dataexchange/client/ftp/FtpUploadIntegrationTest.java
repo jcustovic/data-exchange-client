@@ -1,7 +1,9 @@
 package com.dataexchange.client.ftp;
 
-import com.dataexchange.client.config.MainConfiguration;
-import com.dataexchange.client.config.UploadPollerConfiguration;
+import com.dataexchange.client.config.model.MainConfiguration;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
+import com.dataexchange.client.config.model.UploadPollerConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;

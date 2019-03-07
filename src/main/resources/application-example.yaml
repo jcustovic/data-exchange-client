@@ -1,16 +1,15 @@
 app:
   sftps:
-    -
-      name: localhostSFTP
+    - name: localhostSFTP
       host: localhost
       port: 8888
       username: charis
       password: pass
-    #  private-key:
-    #  private-key-passphrase:
+      #  private-key:
+      #  private-key-passphrase:
       upload-pollers:
-        -
-          name: testSftpUploadPoller
+        name: testSftpUploadPoller
+        file:
           input-folder: D:\Temp\sftp-outbound-test\input
           processed-folder: D:\Temp\sftp-outbound-test\processed
           remote-output-folder: /sftp-outbound-test
@@ -21,22 +20,19 @@ app:
     #      remote-folder: /sftp-outbound-test/test2
     #      regex-filter:
   ftps:
-    -
-      name: localhostFTP
+    - name: localhostFTP
       host: localhost
       port: 12345
       username: test
       password: test
       upload-pollers:
-        -
-          name: testFtpUploadPoller
+        - name: testFtpUploadPoller
           input-folder: D:\Temp\ftp-outbound-test\input
           processed-folder: D:\Temp\ftp-outbound-test\processed
           remote-output-folder: /ftp-outbound-test
           regex-filter: .+\.xml$
       download-pollers:
-        -
-          name: testFtpDownloadPoller
+        - name: testFtpDownloadPoller
           download-folder: D:\Temp\ftp-outbound-test\downloading
           output-folder: D:\Temp\ftp-outbound-test\queue
           output-file-name-expression: "'bla_' + payload.lastModified() + payload.name" # Defaults to null which means original filename

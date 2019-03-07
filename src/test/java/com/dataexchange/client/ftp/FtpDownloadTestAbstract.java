@@ -1,7 +1,7 @@
 package com.dataexchange.client.ftp;
 
-import com.dataexchange.client.config.DownloadPollerConfiguration;
-import com.dataexchange.client.config.MainConfiguration;
+import com.dataexchange.client.config.model.DownloadPollerConfiguration;
+import com.dataexchange.client.config.model.MainConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;

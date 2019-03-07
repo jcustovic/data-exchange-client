@@ -1,5 +1,6 @@
 package com.dataexchange.client.config;
 
+import com.dataexchange.client.config.model.MainConfiguration;
 import com.dataexchange.client.infrastructure.ErrorHandler;
 import org.aopalliance.aop.Advice;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

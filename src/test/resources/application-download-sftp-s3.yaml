@@ -1,0 +1,29 @@
+app:
+  sftps:
+    -
+      name: testSftp
+      host: localhost
+      port: 8888
+      username: charis
+      password: pass
+      download-pollers:
+        -
+          name: testSftpDownloadPoller
+          download-folder: ${java.io.tmpdir}/sftpClient/downloading
+          output-folder:  ${java.io.tmpdir}/sftpClient/to_be_zipped
+          remote-input-folder: test-sftp/remote-input
+          regex-filter: .+\.jpg
+          poll-interval-milliseconds: 5000
+          s3-configuration:
+            input-folder: ${java.io.tmpdir}/sftpClient/queue
+            bucketName:
+            aws-region:
+            aws-account:
+            aws-accessKey:
+            aws-secretKey:
+            aws-role:
+            server-side-encryption: true
+          zip-configuration:
+            min-items-to-zip: 100
+            output-folder: ${java.io.tmpdir}/sftpClient/queue
+            pattern: pictures-%s.tar
