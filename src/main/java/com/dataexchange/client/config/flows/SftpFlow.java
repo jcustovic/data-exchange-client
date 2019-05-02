@@ -1,6 +1,5 @@
 package com.dataexchange.client.config.flows;
 
-
 import com.dataexchange.client.config.model.DownloadPollerConfiguration;
 import com.dataexchange.client.config.model.UploadPollerConfiguration;
 import com.dataexchange.client.domain.util.ConnectionMonitorHelper;
@@ -51,7 +50,10 @@ public class SftpFlow {
                         .maxMessagesPerPoll(100)
                         .errorHandler(e -> connectionMonitorHelper.handleConnectionError(name, e))
                         .advice(encrichLogsWithConnectionInfo(username, config.getOutputFolder()),
-                                clearLogContext(), connectionMonitorHelper.connectionSuccessAdvice(name))))
+                                clearLogContext(),
+                                connectionMonitorHelper.connectionSuccessAdvice(name)
+                        )
+                ))
                 .<File, Boolean>route(f -> hasSemaphoreSemantics(f, config), semaphoreRouterAndOutboundAdapter(config));
 
         String beanName = "sftpDownloadFlow-" + config.getName();
@@ -63,10 +65,14 @@ public class SftpFlow {
                 .from(FileAdapterHelper.fileMessageSource(config.getInputFolder(), config.getRegexFilter()), secondsPoller(10, 100))
                 .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder()))
                 .handle(sftpOutboundAdapter(sftpSessionFactory, config),
-                        conf -> conf.advice(encrichLogsWithConnectionInfo(username,
-                                config.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(),
-                                clearLogContext(), RetryAdvice.retry(), moveFileAdvice,
-                                connectionMonitorHelper.connectionSuccessAdvice(name), connectionMonitorHelper.connectionErrorAdvice(name)
+                        conf -> conf.advice(
+                                encrichLogsWithConnectionInfo(username, config.getRemoteOutputFolder()),
+                                enrichLogsContextWithFileInfo(),
+                                clearLogContext(),
+                                RetryAdvice.retry(),
+                                moveFileAdvice,
+                                connectionMonitorHelper.connectionSuccessAdvice(name),
+                                connectionMonitorHelper.connectionErrorAdvice(name)
                         )
                 ).get();
 

@@ -9,10 +9,14 @@ import com.dataexchange.client.config.model.FtpPollerConfiguration;
 import com.dataexchange.client.config.model.MainConfiguration;
 import com.dataexchange.client.config.model.SftpPollerConfiguration;
 import com.dataexchange.client.domain.ConnectionMonitor;
+import com.dataexchange.client.infrastructure.integration.file.LoggingSessionFactory;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.file.remote.session.CachingSessionFactory;
+import org.springframework.integration.file.remote.session.SessionFactory;
 import org.springframework.integration.ftp.session.DefaultFtpSessionFactory;
 import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
 import org.springframework.stereotype.Component;
@@ -35,6 +39,10 @@ public class DynamicConfigurationCreator {
     private SftpFlow sftpFlow;
     @Autowired
     private FtpFlow ftpFlow;
+    @Autowired(required = false)
+    private RestHighLevelClient restHighLevelClient;
+    @Value("${app.es.index_pattern:#{null}}")
+    private String indexPattern;
 
     @PostConstruct
     public void setup() {
@@ -101,7 +109,8 @@ public class DynamicConfigurationCreator {
         sftpSessionFactory.setTimeout(30_000);
         sftpSessionFactory.setAllowUnknownKeys(true);
 
-        return new CachingSessionFactory(sftpSessionFactory, 5);
+        return createSessionFactory(sftpSessionFactory, 5, sftpPollerConfiguration.getUsername(),
+                sftpPollerConfiguration.getHost());
     }
 
     private CachingSessionFactory ftpSessionFactory(FtpPollerConfiguration ftpPollerConfiguration) {
@@ -121,7 +130,17 @@ public class DynamicConfigurationCreator {
             ftpSessionFactory.setConfig(ftpClientConfig);
         }
 
-        return new CachingSessionFactory(ftpSessionFactory, 5);
+        return createSessionFactory(ftpSessionFactory, 5, ftpPollerConfiguration.getUsername(),
+                ftpPollerConfiguration.getHost());
     }
 
+    private CachingSessionFactory createSessionFactory(SessionFactory sessionFactory, int sessionCacheSize,
+                                                       String connectionUsername, String connectionHost) {
+        if (indexPattern == null) {
+            return new CachingSessionFactory(sessionFactory, sessionCacheSize);
+        } else {
+            return new LoggingSessionFactory(restHighLevelClient, indexPattern, sessionFactory, sessionCacheSize,
+                    connectionUsername, connectionHost);
+        }
+    }
 }

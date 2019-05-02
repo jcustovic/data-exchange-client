@@ -48,7 +48,9 @@ public class FtpFlow {
                         .maxMessagesPerPoll(100)
                         .errorHandler(e -> connectionMonitorHelper.handleConnectionError(name, e))
                         .advice(encrichLogsWithConnectionInfo(username, config.getOutputFolder()),
-                                clearLogContext(), connectionMonitorHelper.connectionSuccessAdvice(name))
+                                clearLogContext(),
+                                connectionMonitorHelper.connectionSuccessAdvice(name)
+                        )
                 ))
                 .<File, Boolean>route(f -> hasSemaphoreSemantics(f, config), semaphoreRouterAndOutboundAdapter(config));
 
@@ -62,9 +64,12 @@ public class FtpFlow {
                         conf -> conf.poller(Pollers.fixedRate(10000).maxMessagesPerPoll(100)))
                 .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder()))
                 .handle(ftpOutboundAdapter(ftpSessionFactory, config),
-                        c -> c.advice(encrichLogsWithConnectionInfo(username,
-                                config.getRemoteOutputFolder()), enrichLogsContextWithFileInfo(), clearLogContext(),
-                                RetryAdvice.retry(), moveFileAdvice, connectionMonitorHelper.connectionSuccessAdvice(name),
+                        c -> c.advice(encrichLogsWithConnectionInfo(username, config.getRemoteOutputFolder()),
+                                enrichLogsContextWithFileInfo(),
+                                clearLogContext(),
+                                RetryAdvice.retry(),
+                                moveFileAdvice,
+                                connectionMonitorHelper.connectionSuccessAdvice(name),
                                 connectionMonitorHelper.connectionErrorAdvice(name)
                         )
                 ).get();

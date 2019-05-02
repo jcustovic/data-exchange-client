@@ -1,6 +1,6 @@
 The project **Data Exchange Client** allows you to connect to SFTP or FTP servers and configure upload and download pullers.
 
-Current stable version: 1.0.1
+Current stable version: 1.2.1
 
 ## How to use
 
@@ -192,6 +192,19 @@ app:
             pattern: pictures-%s.tarz
 ```
 
+#### log throughput:
+
+Push throughput speeds for every file to ElasticSearch. Internally we are using RestHighLevelClient so it needs to be configured via Spring Boot.
+```yaml  
+spring:
+  elasticsearch:
+    rest:
+      uris: localhost # Needed for RestHighLevelClient
+
+app:
+  es:
+    index_pattern: "'data-exchange-client-' + T(java.time.LocalDate).now().format(T(java.time.format.DateTimeFormatter).ofPattern('YYYY-MM'))"
+```
 
 ### Notes while doing upload / download
 

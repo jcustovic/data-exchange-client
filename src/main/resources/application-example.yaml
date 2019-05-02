@@ -1,4 +1,6 @@
 app:
+  es:
+    index_pattern: "'data-exchange-client-' + T(java.time.LocalDate).now().format(T(java.time.format.DateTimeFormatter).ofPattern('YYYY-MM'))" # Configure spring.elasticsearch.rest.uris for the RestHighLevelClient to work
   sftps:
     - name: localhostSFTP
       host: localhost
@@ -39,5 +41,5 @@ app:
           remote-input-folder: /ftp-input-test
           regex-filter: .+\.txt$
           delete-remote-file: false # default is true
-          poll-interval-milliseconds: 30000 # 30s, defaults to 10s
+          poll-interval-milliseconds: 30000 # 30s, defaults to 60s
           #poll-cron: 0 50 * * * ? # Run every 50th min every hour
