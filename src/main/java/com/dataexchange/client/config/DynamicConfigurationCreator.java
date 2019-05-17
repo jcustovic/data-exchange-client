@@ -4,11 +4,9 @@ import com.dataexchange.client.config.flows.FtpFlow;
 import com.dataexchange.client.config.flows.S3Flow;
 import com.dataexchange.client.config.flows.SftpFlow;
 import com.dataexchange.client.config.flows.ZipFlow;
-import com.dataexchange.client.config.model.DownloadPollerConfiguration;
-import com.dataexchange.client.config.model.FtpPollerConfiguration;
-import com.dataexchange.client.config.model.MainConfiguration;
-import com.dataexchange.client.config.model.SftpPollerConfiguration;
+import com.dataexchange.client.config.model.*;
 import com.dataexchange.client.domain.ConnectionMonitor;
+import com.dataexchange.client.domain.model.PollerStatus;
 import com.dataexchange.client.infrastructure.integration.file.LoggingSessionFactory;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
@@ -23,6 +21,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class DynamicConfigurationCreator {
@@ -47,18 +48,34 @@ public class DynamicConfigurationCreator {
     @PostConstruct
     public void setup() {
         for (SftpPollerConfiguration sftp : configuration.getSftps()) {
-            connectionMonitor.register(sftp.getName());
+            Map<String, PollerStatus> pollerStatusMap = buildPollerStatus(sftp.getDownloadPollers(),
+                    sftp.getUploadPollers());
+            connectionMonitor.register(sftp.getName(), pollerStatusMap);
             CachingSessionFactory sftpSessionFactory = sftpSessionFactory(sftp);
             createAndRegisterUploadSftpFlowBeans(sftpSessionFactory, sftp);
             createAndRegisterDownloadSftpFlowBeans(sftpSessionFactory, sftp);
         }
 
         for (FtpPollerConfiguration ftp : configuration.getFtps()) {
-            connectionMonitor.register(ftp.getName());
+            Map<String, PollerStatus> pollerStatusMap = buildPollerStatus(ftp.getDownloadPollers(),
+                    ftp.getUploadPollers());
+            connectionMonitor.register(ftp.getName(), pollerStatusMap);
             CachingSessionFactory ftpSessionFactory = ftpSessionFactory(ftp);
             createAndRegisterUploadFtpFlowBeans(ftpSessionFactory, ftp);
             createAndRegisterDownloadFtpFlowBeans(ftpSessionFactory, ftp);
         }
+    }
+
+    private Map<String, PollerStatus> buildPollerStatus(List<DownloadPollerConfiguration> downloadPollers,
+                                                        List<UploadPollerConfiguration> uploadPollers) {
+        Map<String, PollerStatus> uploadPollerStatus = uploadPollers.stream().collect(
+                Collectors.toMap(UploadPollerConfiguration::getName, dp -> new PollerStatus(PollerStatus.PollerStatusDirection.UPLOAD)));
+
+        Map<String, PollerStatus> downloadPollerStatus = downloadPollers.stream().collect(
+                Collectors.toMap(DownloadPollerConfiguration::getName, dp -> new PollerStatus(PollerStatus.PollerStatusDirection.DOWNLOAD)));
+        downloadPollerStatus.putAll(uploadPollerStatus);
+
+        return downloadPollerStatus;
     }
 
     private void createAndRegisterUploadSftpFlowBeans(CachingSessionFactory sftpSessionFactory, SftpPollerConfiguration sftpConfig) {
@@ -109,7 +126,7 @@ public class DynamicConfigurationCreator {
         sftpSessionFactory.setTimeout(30_000);
         sftpSessionFactory.setAllowUnknownKeys(true);
 
-        return createSessionFactory(sftpSessionFactory, 5, sftpPollerConfiguration.getUsername(),
+        return createSessionFactory(sftpSessionFactory, 1, sftpPollerConfiguration.getUsername(),
                 sftpPollerConfiguration.getHost());
     }
 
@@ -136,11 +153,17 @@ public class DynamicConfigurationCreator {
 
     private CachingSessionFactory createSessionFactory(SessionFactory sessionFactory, int sessionCacheSize,
                                                        String connectionUsername, String connectionHost) {
+        CachingSessionFactory cachingFactory;
+
         if (indexPattern == null) {
-            return new CachingSessionFactory(sessionFactory, sessionCacheSize);
+            cachingFactory = new CachingSessionFactory(sessionFactory, sessionCacheSize);
         } else {
-            return new LoggingSessionFactory(restHighLevelClient, indexPattern, sessionFactory, sessionCacheSize,
-                    connectionUsername, connectionHost);
+            cachingFactory = new LoggingSessionFactory(restHighLevelClient, indexPattern, sessionFactory,
+                    sessionCacheSize, connectionUsername, connectionHost);
         }
+        cachingFactory.setSessionWaitTimeout(60_000);
+        cachingFactory.setTestSession(true);
+
+        return cachingFactory;
     }
 }

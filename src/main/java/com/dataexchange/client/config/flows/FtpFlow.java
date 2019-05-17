@@ -41,36 +41,45 @@ public class FtpFlow {
     private ConnectionMonitorHelper connectionMonitorHelper;
     @Autowired
     private Advice moveFileAdvice;
+    @Autowired
+    private Advice pollerUpdateAdvice;
 
-    public void downloadSetup(CachingSessionFactory ftpSessionFactory, DownloadPollerConfiguration config, String name, String username) {
+    public void downloadSetup(CachingSessionFactory ftpSessionFactory, DownloadPollerConfiguration config,
+                              String connectionName, String username) {
         IntegrationFlowBuilder ftpFlowBuilder = IntegrationFlows
                 .from(ftpInboundAdapter(ftpSessionFactory, config), conf -> conf.poller(configureDownloadPoller(config)
-                        .maxMessagesPerPoll(100)
-                        .errorHandler(e -> connectionMonitorHelper.handleConnectionError(name, e))
+                        .maxMessagesPerPoll(-1)
+                        .errorHandler(e -> connectionMonitorHelper.handleConnectionError(connectionName, e))
                         .advice(encrichLogsWithConnectionInfo(username, config.getOutputFolder()),
                                 clearLogContext(),
-                                connectionMonitorHelper.connectionSuccessAdvice(name)
+                                connectionMonitorHelper.connectionSuccessAdvice(connectionName)
                         )
                 ))
-                .<File, Boolean>route(f -> hasSemaphoreSemantics(f, config), semaphoreRouterAndOutboundAdapter(config));
+                .enrich(h -> h.header("poller_name", config.getName())
+                        .header("connection_name", connectionName))
+                .<File, Boolean>route(f -> hasSemaphoreSemantics(f, config),
+                        semaphoreRouterAndOutboundAdapter(config, pollerUpdateAdvice));
 
         String beanName = "ftpDownloadFlow-" + config.getName();
         integrationFlowContext.registration(ftpFlowBuilder.get()).id(beanName).autoStartup(true).register();
     }
 
-    public void uploadSetup(CachingSessionFactory ftpSessionFactory, UploadPollerConfiguration config, String name, String username) {
+    public void uploadSetup(CachingSessionFactory ftpSessionFactory, UploadPollerConfiguration config,
+                            String connectionName, String username) {
         StandardIntegrationFlow ftpFlow = IntegrationFlows
                 .from(fileMessageSource(config.getInputFolder(), config.getRegexFilter()),
-                        conf -> conf.poller(Pollers.fixedRate(10000).maxMessagesPerPoll(100)))
-                .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder()))
+                        conf -> conf.poller(Pollers.fixedRate(10000).maxMessagesPerPoll(-1)))
+                .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder())
+                        .header("poller_name", config.getName())
+                        .header("connection_name", connectionName))
                 .handle(ftpOutboundAdapter(ftpSessionFactory, config),
                         c -> c.advice(encrichLogsWithConnectionInfo(username, config.getRemoteOutputFolder()),
                                 enrichLogsContextWithFileInfo(),
                                 clearLogContext(),
                                 RetryAdvice.retry(),
                                 moveFileAdvice,
-                                connectionMonitorHelper.connectionSuccessAdvice(name),
-                                connectionMonitorHelper.connectionErrorAdvice(name)
+                                connectionMonitorHelper.connectionSuccessAdvice(connectionName),
+                                connectionMonitorHelper.connectionErrorAdvice(connectionName)
                         )
                 ).get();
 
@@ -94,7 +103,7 @@ public class FtpFlow {
         return Ftp.outboundAdapter(ftpSessionFactory)
                 .autoCreateDirectory(true)
                 .useTemporaryFileName(true)
-                .temporaryFileSuffix(".uploading")
+                .temporaryFileSuffix(config.isUseTempPrefix() ? "" : ".uploading")
                 .remoteDirectory(config.getRemoteOutputFolder());
     }
 

@@ -1,5 +1,6 @@
 package com.dataexchange.client.config.flows;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -7,7 +8,7 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.transfer.Transfer;
+import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.dataexchange.client.config.DynamicConfigurationCreator;
@@ -26,7 +27,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 
-import static com.amazonaws.services.s3.transfer.Transfer.TransferState.Completed;
 import static com.dataexchange.client.infrastructure.integration.PollerConfig.secondsPoller;
 
 @Component
@@ -40,23 +40,33 @@ public class S3Flow {
     public void uploadSetup(String configName, S3Configuration config) {
         IntegrationFlowBuilder s3Flow = IntegrationFlows
                 .from(Files.inboundAdapter(new File(config.getInputFolder())).preventDuplicates(true).autoCreateDirectory(true),
-                        secondsPoller(30, 200))
+                        secondsPoller(30))
                 .enrichHeaders(h -> h.headerExpression(FileHeaders.ORIGINAL_FILE, "payload.path"))
                 .handle(s3UploadAdapter(config))
-                .handle(message -> {
-                    Transfer payload = (Transfer) message.getPayload();
-                    try {
-                        payload.waitForCompletion();
-                        if (Completed.equals(payload.getState())) {
-                            FileUtils.deleteQuietly(new File((String) message.getHeaders().get(FileHeaders.ORIGINAL_FILE)));
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("Error in pushing to S3", e);
-                    }
-                });
+                .channel("s3UploadFlow-channel")
+                .<Upload, Boolean>route(this::doUpload, mapping -> mapping
+                        .subFlowMapping(true, sf -> sf.handle(message -> {
+                                    File file = (File) message.getHeaders().get(FileHeaders.ORIGINAL_FILE);
+                                    LOGGER.info("Deleting file: {}", file.getName());
+                                    FileUtils.deleteQuietly(file);
+                                })
+                        )
+                        .subFlowMapping(false, sf -> sf.delay("s3-error-delayer",
+                                c -> c.defaultDelay(600_000)).channel("s3UploadFlow-channel")
+                        ));
 
         String beanName = "s3UploadFlow-" + configName;
         integrationFlowContext.registration(s3Flow.get()).id(beanName).autoStartup(true).register();
+    }
+
+    private boolean doUpload(Upload upload) {
+        try {
+            upload.waitForCompletion();
+            return true;
+        } catch (AmazonClientException | InterruptedException e) {
+            LOGGER.error("Uploading to S3 failed. ", e);
+            return false;
+        }
     }
 
     private S3MessageHandler s3UploadAdapter(S3Configuration config) {
@@ -83,11 +93,11 @@ public class S3Flow {
                 .build();
 
         STSAssumeRoleSessionCredentialsProvider awsCredentialsProvider = new STSAssumeRoleSessionCredentialsProvider
-                .Builder(config.getAwsRole(), "FileExchange")
+                .Builder(config.getAwsRole(), "DataExchange")
                 .withStsClient(sts)
                 .build();
 
-        ClientConfiguration clientConfiguration = new ClientConfiguration().withMaxErrorRetry(3);// retries
+        ClientConfiguration clientConfiguration = new ClientConfiguration().withMaxErrorRetry(3);
 
         return AmazonS3ClientBuilder.standard()
                 .withCredentials(awsCredentialsProvider).withRegion(config.getAwsRegion())

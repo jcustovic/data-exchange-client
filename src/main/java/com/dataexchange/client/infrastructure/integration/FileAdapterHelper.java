@@ -1,6 +1,7 @@
 package com.dataexchange.client.infrastructure.integration;
 
 import com.dataexchange.client.config.model.DownloadPollerConfiguration;
+import org.aopalliance.aop.Advice;
 import org.springframework.integration.core.MessageSource;
 import org.springframework.integration.dsl.RouterSpec;
 import org.springframework.integration.file.FileReadingMessageSource;
@@ -41,28 +42,31 @@ public final class FileAdapterHelper {
     }
 
     public static FileWritingMessageHandlerSpec defaultFileOutboundAdapter(String outputFolder, String fileNameExpression) {
-        FileWritingMessageHandlerSpec outbountAdapter = Files.outboundAdapter(new File(outputFolder))
+        FileWritingMessageHandlerSpec outboundAdapter = Files.outboundAdapter(new File(outputFolder))
                 .fileExistsMode(FileExistsMode.REPLACE)
                 .deleteSourceFiles(true);
 
         if (StringUtils.hasText(fileNameExpression)) {
-            outbountAdapter.fileNameExpression(fileNameExpression);
+            outboundAdapter.fileNameExpression(fileNameExpression);
         }
 
-        return outbountAdapter;
+        return outboundAdapter;
     }
 
-    public static Consumer<RouterSpec<Boolean, MethodInvokingRouter>> semaphoreRouterAndOutboundAdapter(DownloadPollerConfiguration config) {
-        return mapping -> mapping
+    public static Consumer<RouterSpec<Boolean, MethodInvokingRouter>> semaphoreRouterAndOutboundAdapter(
+            DownloadPollerConfiguration config, Advice pollerUpdateAdvice) {
+        return mapping -> mapping.id(config.getName() + "-isSemaphoreFileDecider")
                 .subFlowMapping(true, sf -> sf.handle(message -> {
                             if (message.getPayload() instanceof File) {
                                 File semFile = (File) message.getPayload();
                                 semFile.delete();
                             }
-                        }, a -> a.advice(enrichLogsContextWithFileInfo()))
+                        }, a -> a.id(config.getName() + "-deleteSemaphoreFile").advice(enrichLogsContextWithFileInfo()))
                 )
                 .subFlowMapping(false, sf -> sf.handle(defaultFileOutboundAdapter(config.getOutputFolder(),
-                        config.getOutputFileNameExpression()), a -> a.advice(RetryAdvice.retry(), enrichLogsContextWithFileInfo())
+                        config.getOutputFileNameExpression()),
+                        a -> a.id(config.getName() + "-moveFileToOutputFolder")
+                                .advice(RetryAdvice.retry(), enrichLogsContextWithFileInfo(), pollerUpdateAdvice)
                 ));
     }
 

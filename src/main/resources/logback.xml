@@ -8,8 +8,11 @@
     <logger name="com.dataexchange.client" level="debug"/>
     <logger name="org.springframework" level="info"/>
     <logger name="org.springframework.integration" level="debug"/>
+
+    <logger name="org.springframework.integration.sftp" level="trace"/>
+
     <logger name="org.springframework.integration.endpoint.PollingConsumer" level="info"/>
-    <logger name="com.jcraft.jsch" level="debug"/>
+
 
     <root level="${logback.root.level:-info}">
         <appender-ref ref="CONSOLE"/>

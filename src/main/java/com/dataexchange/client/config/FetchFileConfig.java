@@ -3,6 +3,7 @@ package com.dataexchange.client.config;
 import com.dataexchange.client.config.model.MainConfiguration;
 import com.dataexchange.client.infrastructure.ErrorHandler;
 import org.aopalliance.aop.Advice;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +27,9 @@ import org.springframework.messaging.MessageChannel;
 @EnableConfigurationProperties(MainConfiguration.class)
 public class FetchFileConfig {
 
+    @Autowired
+    private Advice pollerUpdateAdvice;
+
     @Bean
     public Advice moveFileAdvice() {
         ExpressionEvaluatingRequestHandlerAdvice advice = new ExpressionEvaluatingRequestHandlerAdvice();
@@ -43,7 +47,8 @@ public class FetchFileConfig {
                 .from("moveFileChannel")
                 .handle(Files.outboundAdapter(directoryExpression)
                         .fileExistsMode(FileExistsMode.REPLACE)
-                        .deleteSourceFiles(true))
+                        .deleteSourceFiles(true), conf -> conf.advice(pollerUpdateAdvice)
+                )
                 .get();
     }
 

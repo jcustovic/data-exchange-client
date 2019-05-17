@@ -28,6 +28,4 @@ public class ConnectionMonitorHelper {
     private void handleConnectionUp(String name) {
         connectionMonitor.up(name);
     }
-
-
 }

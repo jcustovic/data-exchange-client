@@ -85,7 +85,7 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
         public void read(String source, OutputStream outputStream) throws IOException {
             CountingOutputStream fos = new CountingOutputStream(outputStream);
             long startTime = System.nanoTime();
-            LOGGER.info("Reading started {} {}", source);
+            LOGGER.info("Reading started {}", source);
             targetSession.read(source, fos);
             long endTime = System.nanoTime();
             BigDecimal bytesPerSec = new BigDecimal(fos.getByteCount() / ((endTime - startTime) / 1000000000f))

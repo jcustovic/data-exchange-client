@@ -13,6 +13,7 @@ public class UploadPollerConfiguration {
     @NotEmpty
     private String remoteOutputFolder;
     private String regexFilter;
+    private boolean useTempPrefix = false;
 
     public String getName() {
         return name;
@@ -52,5 +53,13 @@ public class UploadPollerConfiguration {
 
     public void setRegexFilter(String regexFilter) {
         this.regexFilter = regexFilter;
+    }
+
+    public boolean isUseTempPrefix() {
+        return useTempPrefix;
+    }
+
+    public void setUseTempPrefix(boolean useTempPrefix) {
+        this.useTempPrefix = useTempPrefix;
     }
 }

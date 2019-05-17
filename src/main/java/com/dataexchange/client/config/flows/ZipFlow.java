@@ -31,7 +31,7 @@ public class ZipFlow {
         String zipFileName = config.getPattern().replace("%s", LocalDateTime.now().format(ofPattern("YYYY-MM-dd_HH-mm-ss")));
 
         StandardIntegrationFlow zipFlow = IntegrationFlows
-                .from(inboundAdapter(inputFolder), minutesPoller(1, 200))
+                .from(inboundAdapter(inputFolder), minutesPoller(1))
                 .aggregate(customAggregator(config.getMinItemsToZip()))
                 .enrichHeaders(h -> h
                         .header(ZipHeaders.ZIP_ENTRY_FILE_NAME, config.getPattern())

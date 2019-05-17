@@ -3,10 +3,7 @@ package com.dataexchange.client.web;
 import com.dataexchange.client.domain.ConnectionMonitor;
 import com.dataexchange.client.domain.model.ConnectionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -25,5 +22,16 @@ public class MonitoringController {
     @GetMapping("/{connectionName}")
     public ConnectionStatus findOne(@PathVariable String connectionName) {
         return connectionMonitor.findConnectionStatus(connectionName);
+    }
+
+    @GetMapping(value = "/{connectionName}", params = "expression")
+    public Object evaluateExpOnConnection(@PathVariable String connectionName, @RequestParam String expression) {
+        return connectionMonitor.evaluateExpression(connectionName, expression);
+    }
+
+    @GetMapping(value = "/{connectionName}/{pollerName}")
+    public Object evaluateExpOnPoller(@PathVariable String connectionName, @PathVariable String pollerName,
+                                      @RequestParam String expression) {
+        return connectionMonitor.evaluateExpression(connectionName, pollerName, expression);
     }
 }

@@ -1,9 +1,8 @@
 package com.dataexchange.client.domain.model;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 
 import static com.dataexchange.client.domain.model.ConnectionStatus.ConnectionAliveStatus.*;
 
@@ -13,15 +12,16 @@ public class ConnectionStatus {
         UNKNOWN, UP, DOWN
     }
 
-    public ConnectionStatus() {
-        status = UNKNOWN;
-    }
-
     private ConnectionAliveStatus status;
     private LocalDateTime lastCheck;
     private LocalDateTime downSince;
     private String lastError;
-    private List<String> pollers = new ArrayList<>(); // TODO: Pollers status
+    private Map<String, PollerStatus> pollers;
+
+    public ConnectionStatus(Map<String, PollerStatus> pollers) {
+        this.pollers = pollers;
+        status = UNKNOWN;
+    }
 
     public void up() {
         status = UP;
@@ -37,6 +37,10 @@ public class ConnectionStatus {
         status = DOWN;
         lastCheck = LocalDateTime.now();
         lastError = message;
+    }
+
+    public void updatePoller(String name, String filename, LocalDateTime transferTime) {
+        pollers.get(name).update(filename, transferTime);
     }
 
     public ConnectionAliveStatus getStatus() {
@@ -55,7 +59,7 @@ public class ConnectionStatus {
         return lastError;
     }
 
-    public List<String> getPollers() {
-        return Collections.unmodifiableList(pollers);
+    public Map<String, PollerStatus> getPollers() {
+        return Collections.unmodifiableMap(pollers);
     }
 }

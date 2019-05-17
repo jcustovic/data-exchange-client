@@ -1,5 +1,6 @@
 package com.dataexchange.client;
 
+import com.dataexchange.client.domain.ConnectionMonitor;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
 import org.junit.After;
@@ -8,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.integration.message.AdviceMessage;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.integration.transformer.HeaderEnricher;
@@ -39,6 +41,9 @@ public class DataExchangeClientComponentTest {
     private File sourceFile;
     private File processedFile;
     private Path tempDir;
+
+    @MockBean
+    private ConnectionMonitor connectionMonitor;
 
     @Before
     public void setup() throws Exception {

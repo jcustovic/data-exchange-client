@@ -10,12 +10,12 @@ import java.util.function.Consumer;
 
 public final class PollerConfig {
 
-    public static Consumer<SourcePollingChannelAdapterSpec> secondsPoller(int sec, int maxMessages) {
-        return conf -> conf.poller(Pollers.fixedRate(sec * 1000).maxMessagesPerPoll(maxMessages));
+    public static Consumer<SourcePollingChannelAdapterSpec> secondsPoller(int sec) {
+        return conf -> conf.poller(Pollers.fixedRate(sec * 1000).maxMessagesPerPoll(-1));
     }
 
-    public static Consumer<SourcePollingChannelAdapterSpec> minutesPoller(int min, int maxMessages) {
-        return conf -> conf.poller(Pollers.fixedRate(min * 60_000).maxMessagesPerPoll(maxMessages));
+    public static Consumer<SourcePollingChannelAdapterSpec> minutesPoller(int min) {
+        return conf -> conf.poller(Pollers.fixedRate(min * 60_000).maxMessagesPerPoll(-1));
     }
 
     public static PollerSpec configureDownloadPoller(DownloadPollerConfiguration pollerConfig) {

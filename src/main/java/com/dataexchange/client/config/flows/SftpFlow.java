@@ -43,27 +43,38 @@ public class SftpFlow {
     private ConnectionMonitorHelper connectionMonitorHelper;
     @Autowired
     private Advice moveFileAdvice;
+    @Autowired
+    private Advice pollerUpdateAdvice;
 
-    public void downloadSetup(CachingSessionFactory sftpSessionFactory, DownloadPollerConfiguration config, String name, String username) {
+    public void downloadSetup(CachingSessionFactory sftpSessionFactory, DownloadPollerConfiguration config,
+                              String connectionName, String username) {
         IntegrationFlowBuilder sftpFlowBuilder = IntegrationFlows
-                .from(sftpInboundAdapter(sftpSessionFactory, config), conf -> conf.poller(configureDownloadPoller(config)
-                        .maxMessagesPerPoll(100)
-                        .errorHandler(e -> connectionMonitorHelper.handleConnectionError(name, e))
-                        .advice(encrichLogsWithConnectionInfo(username, config.getOutputFolder()),
-                                clearLogContext(),
-                                connectionMonitorHelper.connectionSuccessAdvice(name)
+                .from(sftpInboundAdapter(sftpSessionFactory, config),
+                        conf -> conf.poller(configureDownloadPoller(config)
+                                .maxMessagesPerPoll(-1)
+                                .errorHandler(e -> connectionMonitorHelper.handleConnectionError(connectionName, e))
+                                .advice(encrichLogsWithConnectionInfo(username, config.getOutputFolder()),
+                                        clearLogContext(),
+                                        connectionMonitorHelper.connectionSuccessAdvice(connectionName)
+                                )
                         )
-                ))
-                .<File, Boolean>route(f -> hasSemaphoreSemantics(f, config), semaphoreRouterAndOutboundAdapter(config));
+                )
+                .enrich(h -> h.header("poller_name", config.getName())
+                        .header("connection_name", connectionName))
+                .<File, Boolean>route(f -> hasSemaphoreSemantics(f, config),
+                        semaphoreRouterAndOutboundAdapter(config, pollerUpdateAdvice));
 
         String beanName = "sftpDownloadFlow-" + config.getName();
         integrationFlowContext.registration(sftpFlowBuilder.get()).id(beanName).autoStartup(true).register();
     }
 
-    public void uploadSetup(CachingSessionFactory sftpSessionFactory, UploadPollerConfiguration config, String name, String username) {
+    public void uploadSetup(CachingSessionFactory sftpSessionFactory, UploadPollerConfiguration config,
+                            String connectionName, String username) {
         StandardIntegrationFlow sftpFlow = IntegrationFlows
-                .from(FileAdapterHelper.fileMessageSource(config.getInputFolder(), config.getRegexFilter()), secondsPoller(10, 100))
-                .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder()))
+                .from(FileAdapterHelper.fileMessageSource(config.getInputFolder(), config.getRegexFilter()), secondsPoller(10))
+                .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder())
+                        .header("poller_name", config.getName())
+                        .header("connection_name", connectionName))
                 .handle(sftpOutboundAdapter(sftpSessionFactory, config),
                         conf -> conf.advice(
                                 encrichLogsWithConnectionInfo(username, config.getRemoteOutputFolder()),
@@ -71,8 +82,8 @@ public class SftpFlow {
                                 clearLogContext(),
                                 RetryAdvice.retry(),
                                 moveFileAdvice,
-                                connectionMonitorHelper.connectionSuccessAdvice(name),
-                                connectionMonitorHelper.connectionErrorAdvice(name)
+                                connectionMonitorHelper.connectionSuccessAdvice(connectionName),
+                                connectionMonitorHelper.connectionErrorAdvice(connectionName)
                         )
                 ).get();
 
@@ -96,7 +107,7 @@ public class SftpFlow {
         return Sftp.outboundAdapter(sftpSessionFactory)
                 .autoCreateDirectory(true)
                 .useTemporaryFileName(true)
-                .temporaryFileSuffix(".uploading")
+                .temporaryFileSuffix(config.isUseTempPrefix() ? "" : ".uploading")
                 .remoteDirectory(config.getRemoteOutputFolder());
     }
 
