@@ -214,6 +214,54 @@ The upload and download pollers remember **in-memory** the **filename** and **cr
 
 ### Monitoring
 
-The application exposes HTTP monitoring endpoint to monitor which connections are UP or DOWN.
+The application exposes HTTP monitoring endpoint to monitor which connections are UP or DOWN and info about last file for every poller.
 
 The default url is: http://localhost:8080/monitoring/connection-health-check
+
+In addition it is possible to write your own checks in Spring SpEL for advanced usage in for e.g. Sensu.
+
+Context in this case is the connection with pollers [ConnectionStatus.java] (src/main/java/com/dataexchange/client/domain/model/ConnectionStatus.java)
+```
+http://localhost:8080/monitoring/connection-health-check/{connectionName}?expression=YOUR_SPEL
+```
+
+And context here is only the specific poller [PollerStatus.java] (src/main/java/com/dataexchange/client/domain/model/PollerStatus.java).
+```
+http://localhost:8080/monitoring/connection-health-check/{connectionName}/{pollerName}?expression=YOUR_SPEL
+```
+
+Example:
+if http://localhost:8080/monitoring/connection-health-check/ return:
+```
+{
+  "exampleSftp": {
+    "status": "UP",
+    "lastCheck": "2019-05-21T08:14:05.899",
+    "downSince": null,
+    "lastError": null,
+    "pollers": {
+      "demoDownloadPoller": {
+        "direction": "DOWNLOAD",
+        "lastTransfer": "2019-05-21T08:01:06.263",
+        "lastFilename": "myFile-013615-2019-05-21_07-59-43.xml"
+      }
+    }
+  }
+}
+```
+
+we can use the endpoint http://localhost:8080/monitoring/connection-health-check/exampleSftp?expression=status.toString()%20==%20%27UP%27 (NOTE: expression is URL encoded) to evaluate connection status.
+
+```
+status.toString() == 'UP'
+```
+
+and the response will be 200 OK with the body:
+```
+true
+```
+
+or we can use the endpoint http://localhost:8080/monitoring/connection-health-check/exampleSftp/demoDownloadPoller?expression=lastTransfer.compareTo(T(java.time.LocalDateTime).now().minusHours(2))%20>%200 to evaluate if we received a file on the specific poller in the last hour.
+
+```
+lastTransfer.compareTo(T(java.time.LocalDateTime).now().minusHours(1)) > 0
