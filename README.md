@@ -176,21 +176,6 @@ app:
             aws-role:
             server-side-encryption: true
 ```
-#### zipping section:
-
-Where _input folder is the output of the download poller config_
-```yaml  
-app:
-  sftps: # or ftp
-    -
-      download-pollers:
-        -
-          ...
-          zip-configuration:
-            min-items-to-zip: 100
-            output-folder: ${java.io.tmpdir}/sftpClient/queue
-            pattern: pictures-%s.tarz
-```
 
 #### log throughput:
 
@@ -205,6 +190,61 @@ app:
   es:
     index_pattern: "'data-exchange-client-' + T(java.time.LocalDate).now().format(T(java.time.format.DateTimeFormatter).ofPattern('YYYY-MM'))"
 ```
+
+#### Consul configuration section
+
+Currently this library comes with support of consul config. By default consul is disabled but by writing your own bootstrap.yml file in your project,
+you can make use of it. It is mainly for storing connection credentials (i.e. hostname, port, username, password) in one common place. 
+
+Here is one example configuration of your bootstrap.yml file.
+```
+spring:
+  cloud:
+    consul:
+      enabled: true
+      port:  ...
+      scheme: https
+      config:
+        enabled: true
+        prefix: ...
+        format: ...
+        data-key: ...
+---
+
+spring:
+  profiles: dev
+  cloud:
+    consul:
+      host: ...
+      config:
+        acl-token: ...
+
+```
+
+In order to let the pollers know that they will take the configuration from Consul, you need to do the following changes. Following is an example of a download poller
+but same works for upload poller:
+```
+ftps:
+    -
+      name: localhostFTP # arbitrary name, should be unique
+      remoteConfigName: <config_name_from_consul's_yaml>
+      download-pollers:
+        -
+          name: testFtpDownloadPoller
+          download-folder: D:\Temp\ftp-outbound-test\downloading
+          output-folder: D:\Temp\ftp-outbound-test\queue
+          output-file-name-expression: "'bla_' + payload.lastModified() + payload.name" # Defaults to null which means original filename
+          regex-filter: .+\.txt$
+          delete-remote-file: false # default is true
+          poll-interval-milliseconds: 30000 # 30s, defaults to 10s
+```
+
+So with consul the following have been replaced.
+remoteConfigName --> user, password, host, port
+file_type        --> remote-input-folder or remote-output-folder
+
+As a result all the remote configuration can be stored in one place and shared between different applications.
+
 
 ### Notes while doing upload / download
 
