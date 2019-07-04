@@ -196,7 +196,7 @@ app:
 Currently this library comes with support of consul config. By default consul is disabled but by writing your own bootstrap.yml file in your project,
 you can make use of it. It is mainly for storing connection credentials (i.e. hostname, port, username, password) in one common place. 
 
-Here is one example configuration of your bootstrap.yml file.
+Here is one example configuration of your bootstrap.yml file. Don't forget to specify -Dspring.profiles.active in order for the correct profile to be loaded.
 ```
 spring:
   cloud:
@@ -231,6 +231,7 @@ ftps:
       download-pollers:
         -
           name: testFtpDownloadPoller
+          file-type: txt
           download-folder: D:\Temp\ftp-outbound-test\downloading
           output-folder: D:\Temp\ftp-outbound-test\queue
           output-file-name-expression: "'bla_' + payload.lastModified() + payload.name" # Defaults to null which means original filename
@@ -240,8 +241,8 @@ ftps:
 ```
 
 So with consul the following have been replaced.
-remoteConfigName --> user, password, host, port
-file_type        --> remote-input-folder or remote-output-folder
+remote-config-name --> user, password, host, port
+file-type          --> remote-input-folder or remote-output-folder
 
 As a result all the remote configuration can be stored in one place and shared between different applications.
 

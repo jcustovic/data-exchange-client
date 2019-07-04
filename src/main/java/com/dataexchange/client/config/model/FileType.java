@@ -1,5 +1,5 @@
 package com.dataexchange.client.config.model;
 
 public enum FileType {
-    XML, JPG, PDF
+    XML, JPG, PDF, TXT
 }

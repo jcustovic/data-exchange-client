@@ -64,6 +64,9 @@ public class MainConfiguration {
                 case XML:
                     downloadPollerConfig.setRemoteInputFolder(remoteConfig.getRemoteFolders().get(XML).getRemoteInputFolder());
                     break;
+                case TXT:
+                    downloadPollerConfig.setRemoteInputFolder(remoteConfig.getRemoteFolders().get(TXT).getRemoteInputFolder());
+                    break;
             }
         }
         for (UploadPollerConfiguration uploadPollerConfig : baseConfig.getUploadPollers()) {
@@ -73,6 +76,9 @@ public class MainConfiguration {
                     break;
                 case XML:
                     uploadPollerConfig.setRemoteOutputFolder(remoteConfig.getRemoteFolders().get(XML).getRemoteOutputFolder());
+                    break;
+                case TXT:
+                    uploadPollerConfig.setRemoteOutputFolder(remoteConfig.getRemoteFolders().get(TXT).getRemoteOutputFolder());
                     break;
             }
         }
