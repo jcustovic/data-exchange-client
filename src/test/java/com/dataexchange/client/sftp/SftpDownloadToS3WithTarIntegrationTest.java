@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SftpDownloadToS3WithTarIntegrationTest extends SftpDownloadToS3TestAbstract {
 
     @Test(timeout = 50_000)
-    @Ignore
+//    @Ignore
     public void whenInputRemoteTarFile_shouldBeDownloadedAndPushedToS3() throws InterruptedException, IOException {
         File.createTempFile("image666", ".tar", new File(realRemoteFolder));
         TimeUnit.SECONDS.sleep(40);

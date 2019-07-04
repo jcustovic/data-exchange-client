@@ -8,6 +8,8 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
@@ -17,17 +19,21 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.integration.aws.outbound.S3MessageHandler;
 import org.springframework.integration.dsl.IntegrationFlowBuilder;
 import org.springframework.integration.dsl.IntegrationFlows;
+import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.dsl.context.IntegrationFlowContext;
 import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.file.dsl.Files;
+import org.springframework.integration.handler.GenericHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
-import static com.dataexchange.client.infrastructure.integration.PollerConfig.secondsPoller;
+import static com.dataexchange.client.domain.util.LogHelper.clearLogContext;
+import static com.dataexchange.client.domain.util.LogHelper.encrichLogsWithConnectionInfo;
 
 @Component
 public class S3Flow {
@@ -37,19 +43,36 @@ public class S3Flow {
     @Autowired
     private IntegrationFlowContext integrationFlowContext;
 
-    public void uploadSetup(String configName, S3Configuration config) {
+    public void uploadSetup(String configName, S3Configuration config, String username) {
         IntegrationFlowBuilder s3Flow = IntegrationFlows
                 .from(Files.inboundAdapter(new File(config.getInputFolder())).preventDuplicates(true).autoCreateDirectory(true),
-                        secondsPoller(30))
+                        conf -> conf.poller(Pollers.fixedRate(2000).maxMessagesPerPoll(100)))
                 .enrichHeaders(h -> h.headerExpression(FileHeaders.ORIGINAL_FILE, "payload.path"))
-                .handle(s3UploadAdapter(config))
+                .handle((GenericHandler<File>) (payload, headers) -> {
+                    String filename = (String) headers.get(FileHeaders.FILENAME);
+                    String bucketName = resolveBucketName(config.getBucketName(), filename);
+
+                    TransferManager tf = TransferManagerBuilder.standard().withS3Client(initS3Client(config)).build();
+
+                    ObjectMetadata objectMetadata = new ObjectMetadata();
+                    if (config.getServerSideEncryption()) {
+                        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+                    }
+
+                    try {
+                        return tf.upload(bucketName, filename, new FileInputStream(payload), objectMetadata);
+                    } catch (FileNotFoundException e) {
+                        LOGGER.error("Upload to S3 has failed for file {}", filename, e);
+                        return null;
+                    }
+                }, conf -> conf.advice(encrichLogsWithConnectionInfo(username, config.getInputFolder()), clearLogContext()))
                 .channel("s3UploadFlow-channel")
                 .<Upload, Boolean>route(this::doUpload, mapping -> mapping
                         .subFlowMapping(true, sf -> sf.handle(message -> {
                                     File file = (File) message.getHeaders().get(FileHeaders.ORIGINAL_FILE);
-                                    LOGGER.info("Deleting file: {}", file.getName());
+                                    LOGGER.info("Deleting file: {}", file.getPath());
                                     FileUtils.deleteQuietly(file);
-                                })
+                                }, conf -> conf.advice(encrichLogsWithConnectionInfo(username, config.getInputFolder())))
                         )
                         .subFlowMapping(false, sf -> sf.delay("s3-error-delayer",
                                 c -> c.defaultDelay(600_000)).channel("s3UploadFlow-channel")
@@ -57,6 +80,14 @@ public class S3Flow {
 
         String beanName = "s3UploadFlow-" + configName;
         integrationFlowContext.registration(s3Flow.get()).id(beanName).autoStartup(true).register();
+    }
+
+    private String resolveBucketName(String bucketName, String filename) {
+        if (filename.endsWith(".zip") || filename.endsWith(".tar")) {
+            return bucketName + "/zip";
+        }
+
+        return bucketName + "/jpg/" + filename.substring(0, 6);
     }
 
     private boolean doUpload(Upload upload) {
@@ -69,21 +100,7 @@ public class S3Flow {
         }
     }
 
-    private S3MessageHandler s3UploadAdapter(S3Configuration config) {
-        AmazonS3 amazonS3 = initAmazonS3(config);
-
-        S3MessageHandler s3MessageHandler = new S3MessageHandler(amazonS3, config.getBucketName(), true);
-
-        if (config.getServerSideEncryption()) {
-            s3MessageHandler.setUploadMetadataProvider((metadata, message) -> {
-                metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-            });
-        }
-
-        return s3MessageHandler;
-    }
-
-    private AmazonS3 initAmazonS3(S3Configuration config) {
+    private AmazonS3 initS3Client(S3Configuration config) {
         BasicAWSCredentials basicAWSCredentials = new BasicAWSCredentials(config.getAwsAccessKey(), config.getAwsSecretKey());
 
         AWSSecurityTokenService sts = AWSSecurityTokenServiceClientBuilder

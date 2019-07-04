@@ -14,12 +14,3 @@ app:
           remote-input-folder: test-sftp/remote-input
           regex-filter: .+\.tar
           poll-interval-milliseconds: 5000
-          s3-configuration:
-            input-folder: ${java.io.tmpdir}/sftpClient/queue
-            bucketName:
-            aws-region:
-            aws-account:
-            aws-accessKey:
-            aws-secretKey:
-            aws-role:
-            server-side-encryption: false

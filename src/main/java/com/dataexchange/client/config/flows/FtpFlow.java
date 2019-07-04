@@ -48,7 +48,7 @@ public class FtpFlow {
                               String connectionName, String username) {
         IntegrationFlowBuilder ftpFlowBuilder = IntegrationFlows
                 .from(ftpInboundAdapter(ftpSessionFactory, config), conf -> conf.poller(configureDownloadPoller(config)
-                        .maxMessagesPerPoll(-1)
+                        .maxMessagesPerPoll(200)
                         .errorHandler(e -> connectionMonitorHelper.handleConnectionError(connectionName, e))
                         .advice(encrichLogsWithConnectionInfo(username, config.getOutputFolder()),
                                 clearLogContext(),

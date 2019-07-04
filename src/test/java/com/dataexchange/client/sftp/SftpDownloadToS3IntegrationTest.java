@@ -11,16 +11,15 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ActiveProfiles("download-sftp-s3")
+@ActiveProfiles({"download-sftp-s3", "dev"})
 public class SftpDownloadToS3IntegrationTest extends SftpDownloadToS3TestAbstract {
 
     @Test(timeout = 50_000)
-    @Ignore
     public void whenInputRemoteImages_shouldBeDownloadedZippedAndUploadToS3() throws InterruptedException, IOException {
         File.createTempFile("image1", ".jpg", new File(realRemoteFolder));
-        File.createTempFile("image2", ".jpg", new File(realRemoteFolder));
-        File.createTempFile("image3", ".jpg", new File(realRemoteFolder));
-        File.createTempFile("image4", ".jpg", new File(realRemoteFolder));
+//        File.createTempFile("image2", ".jpg", new File(realRemoteFolder));
+//        File.createTempFile("image3", ".jpg", new File(realRemoteFolder));
+//        File.createTempFile("image4", ".jpg", new File(realRemoteFolder));
         TimeUnit.SECONDS.sleep(40);
 
         assertThat(Arrays.isNullOrEmpty(new File(realRemoteFolder).listFiles())).isTrue();

@@ -1,7 +1,11 @@
 package com.dataexchange.client.config.model;
 
+import com.dataexchange.client.infrastructure.util.Conditional;
+
 import javax.validation.constraints.NotEmpty;
 
+@Conditional(selected = "fileType", exists = false, required = {"remoteInputFolder"})
+@Conditional(selected = "fileType", exists = true, required = {})
 public class DownloadPollerConfiguration {
 
     @NotEmpty
@@ -11,8 +15,8 @@ public class DownloadPollerConfiguration {
     @NotEmpty
     private String outputFolder;
     private String outputFileNameExpression;
-    @NotEmpty
     private String remoteInputFolder;
+    private FileType fileType;
     private String regexFilter;
     private boolean deleteRemoteFile = true;
     private String semaphoreFileSuffix;
@@ -61,6 +65,14 @@ public class DownloadPollerConfiguration {
 
     public void setRemoteInputFolder(String remoteInputFolder) {
         this.remoteInputFolder = remoteInputFolder;
+    }
+
+    public FileType getFileType() {
+        return fileType;
+    }
+
+    public void setFileType(FileType fileType) {
+        this.fileType = fileType;
     }
 
     public String getRegexFilter() {
