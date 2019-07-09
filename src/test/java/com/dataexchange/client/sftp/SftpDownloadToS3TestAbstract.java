@@ -35,7 +35,7 @@ public abstract class SftpDownloadToS3TestAbstract extends SftpTestServer {
     @After
     public void teardown() throws Exception {
         super.teardown();
-        cleanupWorkingDirs();
+//        cleanupWorkingDirs();
     }
 
     private void cleanupWorkingDirs() throws IOException {

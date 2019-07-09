@@ -88,7 +88,7 @@ public class DynamicConfigurationCreator {
             sftpFlow.downloadSetup(sftpSessionFactory, pollerConfig, sftpConfig.getName(), sftpConfig.getUsername());
 
             if (pollerConfig.getS3Configuration() != null) {
-                s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration());
+                s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration(), sftpConfig.getUsername());
             }
             if (pollerConfig.getZipConfiguration() != null) {
                 zipFlow.setup(pollerConfig.getOutputFolder(), pollerConfig.getName(), pollerConfig.getZipConfiguration());
@@ -106,7 +106,7 @@ public class DynamicConfigurationCreator {
             ftpFlow.downloadSetup(ftpSessionFactory, pollerConfig, ftpConfig.getName(), ftpConfig.getUsername());
 
             if (pollerConfig.getS3Configuration() != null) {
-                s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration());
+                s3Flow.uploadSetup(pollerConfig.getName(), pollerConfig.getS3Configuration(), ftpConfig.getUsername());
             }
             if (pollerConfig.getZipConfiguration() != null) {
                 zipFlow.setup(pollerConfig.getOutputFolder(), pollerConfig.getName(), pollerConfig.getZipConfiguration());
@@ -136,9 +136,9 @@ public class DynamicConfigurationCreator {
         ftpSessionFactory.setUsername(ftpPollerConfiguration.getUsername());
         ftpSessionFactory.setPassword(ftpPollerConfiguration.getPassword());
         ftpSessionFactory.setPort(ftpPollerConfiguration.getPort());
-        ftpSessionFactory.setDefaultTimeout(40_000);
-        ftpSessionFactory.setConnectTimeout(30_000);
-        ftpSessionFactory.setDataTimeout(30_000);
+        ftpSessionFactory.setDefaultTimeout(50_000);
+        ftpSessionFactory.setConnectTimeout(60_000);
+        ftpSessionFactory.setDataTimeout(50_000);
         ftpSessionFactory.setClientMode(FTPClient.PASSIVE_LOCAL_DATA_CONNECTION_MODE);
 
         if (StringUtils.hasText(ftpPollerConfiguration.getFtpParserDateFormat())) {
@@ -153,17 +153,19 @@ public class DynamicConfigurationCreator {
 
     private CachingSessionFactory createSessionFactory(SessionFactory sessionFactory, int sessionCacheSize,
                                                        String connectionUsername, String connectionHost) {
-        CachingSessionFactory cachingFactory;
+
+        CachingSessionFactory cachingSessionFactory;
 
         if (indexPattern == null) {
-            cachingFactory = new CachingSessionFactory(sessionFactory, sessionCacheSize);
-        } else {
-            cachingFactory = new LoggingSessionFactory(restHighLevelClient, indexPattern, sessionFactory,
-                    sessionCacheSize, connectionUsername, connectionHost);
-        }
-        cachingFactory.setSessionWaitTimeout(60_000);
-        cachingFactory.setTestSession(true);
+            cachingSessionFactory = new CachingSessionFactory(sessionFactory, sessionCacheSize);
 
-        return cachingFactory;
+        } else {
+            cachingSessionFactory = new LoggingSessionFactory(restHighLevelClient, indexPattern, sessionFactory, sessionCacheSize,
+                    connectionUsername, connectionHost);
+        }
+        cachingSessionFactory.setSessionWaitTimeout(2000);
+        cachingSessionFactory.setTestSession(true);
+
+        return cachingSessionFactory;
     }
 }
