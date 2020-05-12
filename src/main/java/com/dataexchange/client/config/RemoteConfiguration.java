@@ -11,7 +11,7 @@ import java.util.Map;
 @Component
 @RefreshScope
 @ConfigurationProperties
-public class ConsulConfiguration {
+public class RemoteConfiguration {
 
     private Map<String, RemoteConnectionConfiguration> connections;
 
@@ -19,7 +19,7 @@ public class ConsulConfiguration {
         return connections.get(configName);
     }
 
-    public Map<String, RemoteConnectionConfiguration> getAllConnections() {
+    public Map<String, RemoteConnectionConfiguration> getConnections() {
         return connections;
     }
 

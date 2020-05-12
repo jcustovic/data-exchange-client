@@ -1,0 +1,2 @@
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+com.dataexchange.client.config.aws.AWSConfiguration
