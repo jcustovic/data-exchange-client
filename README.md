@@ -1,6 +1,6 @@
 The project **Data Exchange Client** allows you to connect to SFTP or FTP servers and configure upload and download pullers.
 
-Current stable version: **1.4.0**
+Current stable version: **1.5.0**
 
 ## How to use
 
