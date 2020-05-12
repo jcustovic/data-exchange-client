@@ -1,6 +1,6 @@
 package com.dataexchange.client.config.model;
 
-import com.dataexchange.client.config.ConsulConfiguration;
+import com.dataexchange.client.config.RemoteConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.io.ByteArrayResource;
@@ -18,7 +18,7 @@ import static com.dataexchange.client.config.model.FileType.*;
 public class MainConfiguration {
 
     @Autowired
-    private ConsulConfiguration consulConfiguration;
+    private RemoteConfiguration remoteConfiguration;
 
     @Valid
     private List<SftpPollerConfiguration> sftps = new ArrayList<>();
@@ -31,7 +31,7 @@ public class MainConfiguration {
                 .filter(SftpPollerConfiguration::hasRemoteConfig)
                 .forEach(sftp -> {
                     RemoteConnectionConfiguration remoteConfig =
-                            consulConfiguration.getConnectionConfigByName(sftp.getRemoteConfigName());
+                            remoteConfiguration.getConnectionConfigByName(sftp.getRemoteConfigName());
                     setConnectionConfiguration(sftp, remoteConfig);
                     setRemoteFolders(sftp, remoteConfig);
                     sftp.setPrivateKey(new ByteArrayResource(remoteConfig.getPrivateKey().getBytes()));
@@ -41,7 +41,7 @@ public class MainConfiguration {
                 .filter(FtpPollerConfiguration::hasRemoteConfig)
                 .forEach(ftp -> {
                     RemoteConnectionConfiguration remoteConfig =
-                            consulConfiguration.getConnectionConfigByName(ftp.getRemoteConfigName());
+                            remoteConfiguration.getConnectionConfigByName(ftp.getRemoteConfigName());
                     setConnectionConfiguration(ftp, remoteConfig);
                     setRemoteFolders(ftp, remoteConfig);
                 });

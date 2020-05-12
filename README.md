@@ -191,13 +191,17 @@ app:
     index_pattern: "'data-exchange-client-' + T(java.time.LocalDate).now().format(T(java.time.format.DateTimeFormatter).ofPattern('YYYY-MM'))"
 ```
 
-#### Consul configuration section
+#### Remote configuration
 
-Currently this library comes with support of consul config. By default consul is disabled but by writing your own bootstrap.yml file in your project,
-you can make use of it. It is mainly for storing connection credentials (i.e. hostname, port, username, password) in one common place. 
+This library comes with a support for reading remote configuration from Consul or AWS Parameter Store. By default, this feature is disabled, 
+but by writing your own bootstrap.yml file in your project, you can make use of it. It is mainly for storing connection credentials (i.e. hostname, port, 
+username, password) in one common place. 
 
-Here is one example configuration of your bootstrap.yml file. Don't forget to specify -Dspring.profiles.active in order for the correct profile to be loaded.
-```
+##### Consul connection configuration
+
+Here is one example configuration of your bootstrap.yml file, which enables Consul support. 
+Don't forget to specify `-Dspring.profiles.active` in order for the correct profile to be loaded.
+```yaml
 spring:
   cloud:
     consul:
@@ -221,13 +225,48 @@ spring:
 
 ```
 
-In order to let the pollers know that they will take the configuration from Consul, you need to do the following changes. Following is an example of a download poller
+##### AWS Parameter Store connection configuration
+
+This library uses Spring Cloud AWS to integrate with AWS Parameter Store.
+It is configured using `aws.paramstore.*` properties described in Spring Cloud AWS documentation.
+Its functionality is extended by allowing you to configure `AWSStaticCredentialsProvider` or `STSAssumeRoleSessionCredentialsProvider` 
+using `aws.credentials.*` properties described below.
+
+Here is one example configuration of your bootstrap.yml file, which enables AWS Parameter Store support. 
+```yaml
+spring:
+  cloud:
+    consul:
+      enabled: false
+
+aws:
+  credentials:
+    use-static-provider: true
+    access-key: ...
+    secret-key: ...
+    region: ...
+    # specify below properties if you need to assume STS role  
+    sts-role-arn: ...
+    role-session-name: data-exchange-client
+  paramstore:
+    enabled: true
+    prefix: /config
+    name: data-exchange-client
+
+```
+
+Using the above configuration, a parameter stored in AWS Parameter Store under the key `/config/data-exchange-client/connections/test/password`
+will be available in Spring as `connections.test.password`. 
+
+##### Pollers configuration
+
+In order to let the pollers know that they will take the configuration from remote store, you need to do the following changes. Following is an example of a download poller
 but same works for upload poller:
 ```
 ftps:
     -
       name: localhostFTP # arbitrary name, should be unique
-      remoteConfigName: <config_name_from_consul's_yaml>
+      remoteConfigName: <config_name_from_remote_configuration_store>
       download-pollers:
         -
           name: testFtpDownloadPoller
@@ -240,7 +279,7 @@ ftps:
           poll-interval-milliseconds: 30000 # 30s, defaults to 10s
 ```
 
-So with consul the following have been replaced.
+So with Consul the following have been replaced.
 remote-config-name --> user, password, host, port
 file-type          --> remote-input-folder or remote-output-folder
 

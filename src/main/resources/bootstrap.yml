@@ -4,3 +4,9 @@ spring:
       enabled: false
       config:
         enabled: false
+
+aws:
+  credentials:
+    use-static-provider: false
+  paramstore:
+    enabled: false
