@@ -45,6 +45,7 @@ public class S3Flow {
 
     public void uploadSetup(String configName, S3Configuration config, String username) {
         IntegrationFlowBuilder s3Flow = IntegrationFlows
+            // TODO add a taskExecutor to poller config for parallel processing
                 .from(Files.inboundAdapter(new File(config.getInputFolder())).preventDuplicates(true).autoCreateDirectory(true),
                         conf -> conf.poller(Pollers.fixedRate(2000).maxMessagesPerPoll(100)))
                 .enrichHeaders(h -> h.headerExpression(FileHeaders.ORIGINAL_FILE, "payload.path"))
@@ -55,6 +56,7 @@ public class S3Flow {
                     TransferManager tf = TransferManagerBuilder.standard().withS3Client(initS3Client(config)).build();
 
                     ObjectMetadata objectMetadata = new ObjectMetadata();
+                    objectMetadata.setContentLength(payload.length());
                     if (config.getServerSideEncryption()) {
                         objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
                     }
