@@ -29,7 +29,7 @@
         <!-- Test -->
         <org.apache.sshd.version>2.1.0</org.apache.sshd.version>
         <org.apache.ftpserver.version>1.1.1</org.apache.ftpserver.version>
-        <commons-beanutils.version>1.9.3</commons-beanutils.version>
+        <commons-beanutils.version>1.9.4</commons-beanutils.version>
     </properties>
 
     <dependencyManagement>
