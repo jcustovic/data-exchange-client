@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 @Component
 public class DynamicConfigurationCreator {
 
+    public static final int DEFAULT_SESSION_CACHE_SIZE = 5;
+
     @Autowired
     private MainConfiguration configuration;
     @Autowired
@@ -126,7 +128,7 @@ public class DynamicConfigurationCreator {
         sftpSessionFactory.setTimeout(30_000);
         sftpSessionFactory.setAllowUnknownKeys(true);
 
-        return createSessionFactory(sftpSessionFactory, 1, sftpPollerConfiguration.getUsername(),
+        return createSessionFactory(sftpSessionFactory, DEFAULT_SESSION_CACHE_SIZE, sftpPollerConfiguration.getUsername(),
                 sftpPollerConfiguration.getHost());
     }
 
@@ -147,7 +149,7 @@ public class DynamicConfigurationCreator {
             ftpSessionFactory.setConfig(ftpClientConfig);
         }
 
-        return createSessionFactory(ftpSessionFactory, 5, ftpPollerConfiguration.getUsername(),
+        return createSessionFactory(ftpSessionFactory, DEFAULT_SESSION_CACHE_SIZE, ftpPollerConfiguration.getUsername(),
                 ftpPollerConfiguration.getHost());
     }
 

@@ -18,9 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -88,12 +86,11 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
             LOGGER.info("Reading started {}", source);
             targetSession.read(source, fos);
             long endTime = System.nanoTime();
-            BigDecimal bytesPerSec = new BigDecimal(fos.getByteCount() / ((endTime - startTime) / 1000000000f))
+            BigDecimal bytesPerSec = BigDecimal.valueOf(fos.getByteCount() / ((endTime - startTime) / 1000000000f))
                     .setScale(4, BigDecimal.ROUND_HALF_UP);
             BigDecimal kBytesPerSec = bytesPerSec.divide(BigDecimal.valueOf(1024f), 2, RoundingMode.HALF_UP);
 
             submitExecutor.execute(() -> {
-                LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM"));
                 IndexRequest request = createIndexRequest(source, fos.getCount(), kBytesPerSec, OperationType.DOWNLOAD);
                 try {
                     esClient.index(request, RequestOptions.DEFAULT);
@@ -109,7 +106,7 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
             long startTime = System.nanoTime();
             targetSession.write(cis, destination);
             long endTime = System.nanoTime();
-            BigDecimal bytesPerSec = new BigDecimal(cis.getByteCount() / ((endTime - startTime) / 1000000000f))
+            BigDecimal bytesPerSec = BigDecimal.valueOf(cis.getByteCount() / ((endTime - startTime) / 1000000000f))
                     .setScale(4, BigDecimal.ROUND_HALF_UP);
             BigDecimal kBytesPerSec = bytesPerSec.divide(BigDecimal.valueOf(1024f), 2, RoundingMode.HALF_UP);
 
@@ -176,6 +173,11 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
         @Override
         public Object getClientInstance() {
             return targetSession.getClientInstance();
+        }
+
+        @Override
+        public String getHostPort() {
+            return targetSession.getHostPort();
         }
 
         @Override

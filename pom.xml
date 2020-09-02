@@ -5,7 +5,7 @@
 
     <groupId>com.dataexchange</groupId>
     <artifactId>data-exchange-client</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.2</version>
     <packaging>jar</packaging>
 
     <name>data-exchange-client</name>
@@ -14,17 +14,17 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.1.4.RELEASE</version>
+        <version>2.3.3.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <properties>
         <java.version>1.8</java.version>
 
-        <spring-integration-aws.version>2.0.1.RELEASE</spring-integration-aws.version>
+        <spring-integration-aws.version>2.3.3.RELEASE</spring-integration-aws.version>
+        <com.amazonaws.sdk.version>1.11.792</com.amazonaws.sdk.version> <!-- from spring-integration-aws -->
 
-        <commons-lang3.version>3.8.1</commons-lang3.version>
-        <com.amazonaws.sdk>1.11.336</com.amazonaws.sdk>
+        <commons-lang3.version>3.10</commons-lang3.version>
 
         <!-- Test -->
         <org.apache.sshd.version>2.1.0</org.apache.sshd.version>
@@ -37,7 +37,7 @@
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>Greenwich.RELEASE</version>
+                <version>Hoxton.RELEASE</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -71,7 +71,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-commons</artifactId>
-            <version>2.1.1.RELEASE</version>
         </dependency>
 
         <dependency>
@@ -82,6 +81,11 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-ftp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-core</artifactId>
         </dependency>
 
         <dependency>
@@ -115,17 +119,16 @@
             <version>${commons-beanutils.version}</version>
         </dependency>
 
-
         <!-- AWS -->
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
-            <version>${com.amazonaws.sdk}</version>
+            <version>${com.amazonaws.sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>${com.amazonaws.sdk}</version>
+            <version>${com.amazonaws.sdk.version}</version>
         </dependency>
 
         <dependency>
@@ -166,48 +169,5 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>libs-local</id>
-            <url>https://bin.private.zooplus.net/artifactory/libs-local</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>remote-repos</id>
-            <url>https://bin.private.zooplus.net/artifactory/remote-repos</url>
-        </pluginRepository>
-    </pluginRepositories>
-
-    <repositories>
-        <repository>
-            <id>finance-artifactory</id>
-            <url>https://bin.private.zooplus.net/artifactory/finance-local</url>
-        </repository>
-        <repository>
-            <id>logistics-local</id>
-            <url>https://bin.private.zooplus.net/artifactory/logistics-local</url>
-        </repository>
-        <repository>
-            <id>remote-repos</id>
-            <url>https://bin.private.zooplus.net/artifactory/remote-repos</url>
-        </repository>
-        <repository>
-            <id>libs-local</id>
-            <url>https://bin.private.zooplus.net/artifactory/libs-local</url>
-        </repository>
-    </repositories>
-
-    <distributionManagement>
-        <repository>
-            <id>zooplus</id>
-            <name>zooplus-releases</name>
-            <url>https://bin.private.zooplus.net/artifactory/logistics-local</url>
-        </repository>
-        <snapshotRepository>
-            <id>zooplus</id>
-            <name>zooplus-snapshots</name>
-            <url>https://bin.private.zooplus.net/artifactory/snapshots-local</url>
-        </snapshotRepository>
-    </distributionManagement>
 
 </project>

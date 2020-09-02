@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-
 @Component
 @RefreshScope
 @ConfigurationProperties

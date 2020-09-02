@@ -18,7 +18,7 @@ public class MonitoringConfig {
     public AbstractRequestHandlerAdvice pollerUpdateAdvice() {
         return new AbstractRequestHandlerAdvice() {
             @Override
-            protected Object doInvoke(ExecutionCallback callback, Object target, Message<?> message) throws Exception {
+            protected Object doInvoke(ExecutionCallback callback, Object target, Message<?> message) {
                 Message unwrap = message;
                 if (message instanceof AdviceMessage) {
                     unwrap = ((AdviceMessage<?>) message).getInputMessage();
