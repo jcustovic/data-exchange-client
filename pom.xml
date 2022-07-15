@@ -22,7 +22,7 @@
         <java.version>1.8</java.version>
 
         <spring-integration-aws.version>2.3.3.RELEASE</spring-integration-aws.version>
-        <com.amazonaws.sdk.version>1.11.792</com.amazonaws.sdk.version> <!-- from spring-integration-aws -->
+        <com.amazonaws.sdk.version>1.12.261</com.amazonaws.sdk.version> <!-- from spring-integration-aws -->
 
         <commons-lang3.version>3.10</commons-lang3.version>
 
