@@ -12,7 +12,6 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.file.dsl.Files;
@@ -43,7 +42,7 @@ public class FetchFileConfig {
     IntegrationFlow moveFileFlow() {
         Expression directoryExpression = new SpelExpressionParser().parseExpression("inputMessage.headers['destination_folder']");
 
-        return IntegrationFlows
+        return IntegrationFlow
                 .from("moveFileChannel")
                 .handle(Files.outboundAdapter(directoryExpression)
                         .fileExistsMode(FileExistsMode.REPLACE)
@@ -54,7 +53,7 @@ public class FetchFileConfig {
 
     @Bean
     IntegrationFlow errorChannelFlow() {
-        return IntegrationFlows
+        return IntegrationFlow
                 .from("errorChannel")
                 .handle(errorHandler())
                 .get();
@@ -62,12 +61,12 @@ public class FetchFileConfig {
 
     @Bean
     MessageChannel moveFileChannel() {
-        return MessageChannels.queue().get();
+        return MessageChannels.queue().getObject();
     }
 
     @Bean(name = PollerMetadata.DEFAULT_POLLER)
     public PollerMetadata poller() {
-        return Pollers.fixedRate(2000).maxMessagesPerPoll(1).get();
+        return Pollers.fixedRate(2000).maxMessagesPerPoll(1).getObject();
     }
 
     @Bean

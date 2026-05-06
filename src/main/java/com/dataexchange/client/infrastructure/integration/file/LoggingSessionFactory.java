@@ -1,10 +1,9 @@
 package com.dataexchange.client.infrastructure.integration.file;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.commons.io.output.CountingOutputStream;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -34,18 +33,18 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingSessionFactory.class);
 
-    private final RestHighLevelClient esClient;
+    private final ElasticsearchClient esClient;
     private final String indexPatternSpel;
     private final String connectionUsername;
     private final String connectionHost;
     private final SpelExpressionParser spelExpressionParser;
     private final Executor submitExecutor;
 
-    public LoggingSessionFactory(RestHighLevelClient esClient, String indexPatternSpel, SessionFactory<T> sessionFactory,
+    public LoggingSessionFactory(ElasticsearchClient esClient, String indexPatternSpel, SessionFactory<T> sessionFactory,
                                  int sessionCacheSize, String connectionUsername, String connectionHost) {
         super(sessionFactory, sessionCacheSize);
 
-        Assert.notNull(esClient, "RestHighLevelClient must not be null");
+        Assert.notNull(esClient, "ElasticsearchClient must not be null");
         Assert.notNull(indexPatternSpel, "IndexPatternSpel must not be null");
 
         this.esClient = esClient;
@@ -87,16 +86,11 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
             targetSession.read(source, fos);
             long endTime = System.nanoTime();
             BigDecimal bytesPerSec = BigDecimal.valueOf(fos.getByteCount() / ((endTime - startTime) / 1000000000f))
-                    .setScale(4, BigDecimal.ROUND_HALF_UP);
+                    .setScale(4, RoundingMode.HALF_UP);
             BigDecimal kBytesPerSec = bytesPerSec.divide(BigDecimal.valueOf(1024f), 2, RoundingMode.HALF_UP);
 
             submitExecutor.execute(() -> {
-                IndexRequest request = createIndexRequest(source, fos.getCount(), kBytesPerSec, OperationType.DOWNLOAD);
-                try {
-                    esClient.index(request, RequestOptions.DEFAULT);
-                } catch (IOException e) {
-                    LOGGER.error("Push statistics to ES failed", e);
-                }
+                indexDocument(source, fos.getCount(), kBytesPerSec, OperationType.DOWNLOAD);
             });
         }
 
@@ -107,16 +101,11 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
             targetSession.write(cis, destination);
             long endTime = System.nanoTime();
             BigDecimal bytesPerSec = BigDecimal.valueOf(cis.getByteCount() / ((endTime - startTime) / 1000000000f))
-                    .setScale(4, BigDecimal.ROUND_HALF_UP);
+                    .setScale(4, RoundingMode.HALF_UP);
             BigDecimal kBytesPerSec = bytesPerSec.divide(BigDecimal.valueOf(1024f), 2, RoundingMode.HALF_UP);
 
             submitExecutor.execute(() -> {
-                IndexRequest request = createIndexRequest(destination, cis.getCount(), kBytesPerSec, OperationType.UPLOAD);
-                try {
-                    esClient.index(request, RequestOptions.DEFAULT);
-                } catch (IOException e) {
-                    LOGGER.error("Push statistics to ES failed", e);
-                }
+                indexDocument(destination, cis.getCount(), kBytesPerSec, OperationType.UPLOAD);
             });
         }
 
@@ -191,18 +180,22 @@ public class LoggingSessionFactory<T> extends CachingSessionFactory<T> {
         }
     }
 
-    private IndexRequest createIndexRequest(String filePath, long fileSize, BigDecimal kBytesPerSec, OperationType operationType) {
-        Map<String, Object> jsonMap = new HashMap<>();
-        jsonMap.put("@timestamp", ZonedDateTime.now().format(ISO_OFFSET_DATE_TIME));
-        jsonMap.put("fileName", filePath);
-        jsonMap.put("fileSizeBytes", fileSize);
-        jsonMap.put("operationType", operationType);
-        jsonMap.put("throughputKBs", kBytesPerSec.doubleValue());
-        jsonMap.put("username", connectionUsername);
-        jsonMap.put("host", connectionHost);
+    private void indexDocument(String filePath, long fileSize, BigDecimal kBytesPerSec, OperationType operationType) {
+        String index = spelExpressionParser.parseExpression(indexPatternSpel).getValue(String.class);
 
-        return new IndexRequest().index(spelExpressionParser.parseExpression(indexPatternSpel).getValue(String.class))
-                .type("default")
-                .source(jsonMap);
+        Map<String, Object> document = new HashMap<>();
+        document.put("@timestamp", ZonedDateTime.now().format(ISO_OFFSET_DATE_TIME));
+        document.put("fileName", filePath);
+        document.put("fileSizeBytes", fileSize);
+        document.put("operationType", operationType.name());
+        document.put("throughputKBs", kBytesPerSec.doubleValue());
+        document.put("username", connectionUsername);
+        document.put("host", connectionHost);
+
+        try {
+            esClient.index(IndexRequest.of(i -> i.index(index).document(document)));
+        } catch (IOException e) {
+            LOGGER.error("Push statistics to ES failed", e);
+        }
     }
 }

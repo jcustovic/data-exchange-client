@@ -14,22 +14,24 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.3.3.RELEASE</version>
+        <version>4.0.6</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>25</java.version>
 
-        <spring-integration-aws.version>2.3.3.RELEASE</spring-integration-aws.version>
-        <com.amazonaws.sdk.version>1.11.792</com.amazonaws.sdk.version> <!-- from spring-integration-aws -->
+        <spring-cloud-aws.version>4.0.0</spring-cloud-aws.version>
+        <aws-sdk-v2.version>2.43.0</aws-sdk-v2.version>
 
-        <commons-lang3.version>3.10</commons-lang3.version>
+        <elasticsearch-java.version>8.17.0</elasticsearch-java.version>
+
+        <commons-lang3.version>3.17.0</commons-lang3.version>
 
         <!-- Test -->
-        <org.apache.sshd.version>2.1.0</org.apache.sshd.version>
-        <org.apache.ftpserver.version>1.1.1</org.apache.ftpserver.version>
-        <commons-beanutils.version>1.9.3</commons-beanutils.version>
+        <org.apache.sshd.version>2.14.0</org.apache.sshd.version>
+        <org.apache.ftpserver.version>1.2.0</org.apache.ftpserver.version>
+        <commons-beanutils.version>1.9.4</commons-beanutils.version>
     </properties>
 
     <dependencyManagement>
@@ -37,7 +39,21 @@
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>Hoxton.RELEASE</version>
+                <version>2025.1.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.awspring.cloud</groupId>
+                <artifactId>spring-cloud-aws-dependencies</artifactId>
+                <version>${spring-cloud-aws.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws-sdk-v2.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -63,14 +79,16 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-consul-config</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-aws-parameter-store-config</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-commons</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud AWS (Parameter Store) -->
+        <dependency>
+            <groupId>io.awspring.cloud</groupId>
+            <artifactId>spring-cloud-aws-starter-parameter-store</artifactId>
         </dependency>
 
         <dependency>
@@ -88,19 +106,36 @@
             <artifactId>spring-integration-core</artifactId>
         </dependency>
 
+        <!-- AWS SDK v2 -->
         <dependency>
-            <groupId>org.springframework.integration</groupId>
-            <artifactId>spring-integration-aws</artifactId>
-            <version>${spring-integration-aws.version}</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3-transfer-manager</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sts</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ssm</artifactId>
         </dependency>
 
+        <!-- Elasticsearch Java Client -->
         <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
+            <version>${elasticsearch-java.version}</version>
         </dependency>
+
+        <!-- Apache MINA SSHD (used by spring-integration-sftp) -->
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-sftp</artifactId>
+            <version>${org.apache.sshd.version}</version>
         </dependency>
 
         <dependency>
@@ -117,18 +152,6 @@
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
             <version>${commons-beanutils.version}</version>
-        </dependency>
-
-        <!-- AWS -->
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <version>${com.amazonaws.sdk.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>${com.amazonaws.sdk.version}</version>
         </dependency>
 
         <dependency>
@@ -154,12 +177,6 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.sshd</groupId>
-            <artifactId>sshd-sftp</artifactId>
-            <version>${org.apache.sshd.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

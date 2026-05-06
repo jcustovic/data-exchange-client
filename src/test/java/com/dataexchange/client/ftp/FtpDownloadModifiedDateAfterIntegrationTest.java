@@ -1,6 +1,8 @@
 package com.dataexchange.client.ftp;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import java.util.concurrent.TimeUnit;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
@@ -9,7 +11,7 @@ import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.isNullOrEmpty;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @ActiveProfiles("download-ftp-modifiedDateAfterMinutes")
 public class FtpDownloadModifiedDateAfterIntegrationTest extends FtpDownloadTestAbstract {
@@ -27,7 +29,8 @@ public class FtpDownloadModifiedDateAfterIntegrationTest extends FtpDownloadTest
         assertThat(outputFile).doesNotExist();
     }
 
-    @Test(timeout = 20000)
+    @Test
+    @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
     public void whenRemoteFileWithSemaphore_shouldBeDownloadedAndRemoteFileWillStayThere() throws InterruptedException {
         remoteSourceFile.setLastModified(LocalDateTime.now().minusMinutes(5).atZone(ZoneOffset.systemDefault()).toInstant().toEpochMilli());
 

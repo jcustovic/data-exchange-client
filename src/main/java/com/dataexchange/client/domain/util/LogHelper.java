@@ -45,6 +45,11 @@ public final class LogHelper {
     public static AbstractHandleMessageAdvice enrichLogsContextWithFileInfo() {
         return new AbstractHandleMessageAdvice() {
             @Override
+            public String getComponentType() {
+                return "logHelper";
+            }
+
+            @Override
             protected Object doInvoke(MethodInvocation invocation, Message<?> message) throws Throwable {
                 String filename = message.getHeaders().get("file_name", String.class);
                 String correlationId = MDC.get("correlation_id");

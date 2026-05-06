@@ -7,11 +7,11 @@ import com.dataexchange.client.infrastructure.integration.FileAdapterHelper;
 import com.dataexchange.client.infrastructure.integration.RetryAdvice;
 import com.dataexchange.client.infrastructure.integration.filters.SftpLastModifiedOlderThanFileFilter;
 import com.dataexchange.client.infrastructure.integration.filters.SftpSemaphoreFileFilter;
-import com.jcraft.jsch.ChannelSftp;
+import org.apache.sshd.sftp.client.SftpClient.DirEntry;
 import org.aopalliance.aop.Advice;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlowBuilder;
-import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.StandardIntegrationFlow;
 import org.springframework.integration.dsl.context.IntegrationFlowContext;
 import org.springframework.integration.file.filters.ChainFileListFilter;
@@ -48,7 +48,7 @@ public class SftpFlow {
 
     public void downloadSetup(CachingSessionFactory sftpSessionFactory, DownloadPollerConfiguration config,
                               String connectionName, String username) {
-        IntegrationFlowBuilder sftpFlowBuilder = IntegrationFlows
+        IntegrationFlowBuilder sftpFlowBuilder = IntegrationFlow
                 .from(sftpInboundAdapter(sftpSessionFactory, config),
                         conf -> conf.poller(configureDownloadPoller(config)
                                 .maxMessagesPerPoll(-1)
@@ -70,7 +70,7 @@ public class SftpFlow {
 
     public void uploadSetup(CachingSessionFactory sftpSessionFactory, UploadPollerConfiguration config,
                             String connectionName, String username) {
-        StandardIntegrationFlow sftpFlow = IntegrationFlows
+        StandardIntegrationFlow sftpFlow = IntegrationFlow
                 .from(FileAdapterHelper.fileMessageSource(config.getInputFolder(), config.getRegexFilter()), secondsPoller(10))
                 .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder())
                         .header("poller_name", config.getName())
@@ -92,7 +92,7 @@ public class SftpFlow {
     }
 
     private SftpInboundChannelAdapterSpec sftpInboundAdapter(CachingSessionFactory sftpSessionFactory, DownloadPollerConfiguration config) {
-        CompositeFileListFilter<ChannelSftp.LsEntry> filters = buildSftpFilters(config);
+        CompositeFileListFilter<DirEntry> filters = buildSftpFilters(config);
 
         return Sftp.inboundAdapter(sftpSessionFactory)
                 .localDirectory(new File(config.getDownloadFolder()))
@@ -111,8 +111,8 @@ public class SftpFlow {
                 .remoteDirectory(config.getRemoteOutputFolder());
     }
 
-    private CompositeFileListFilter<ChannelSftp.LsEntry> buildSftpFilters(DownloadPollerConfiguration config) {
-        CompositeFileListFilter<ChannelSftp.LsEntry> chainFileListFilter = new ChainFileListFilter<>();
+    private CompositeFileListFilter<DirEntry> buildSftpFilters(DownloadPollerConfiguration config) {
+        CompositeFileListFilter<DirEntry> chainFileListFilter = new ChainFileListFilter<>();
         if (StringUtils.hasText(config.getSemaphoreFileSuffix())) {
             chainFileListFilter.addFilter(new SftpSemaphoreFileFilter(config.getSemaphoreFileSuffix()));
         }

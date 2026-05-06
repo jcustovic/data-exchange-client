@@ -10,7 +10,7 @@ import com.dataexchange.client.domain.model.PollerStatus;
 import com.dataexchange.client.infrastructure.integration.file.LoggingSessionFactory;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
-import org.elasticsearch.client.RestHighLevelClient;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.file.remote.session.CachingSessionFactory;
@@ -20,7 +20,7 @@ import org.springframework.integration.sftp.session.DefaultSftpSessionFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,7 +43,7 @@ public class DynamicConfigurationCreator {
     @Autowired
     private FtpFlow ftpFlow;
     @Autowired(required = false)
-    private RestHighLevelClient restHighLevelClient;
+    private ElasticsearchClient elasticsearchClient;
     @Value("${app.es.index_pattern:#{null}}")
     private String indexPattern;
 
@@ -124,7 +124,6 @@ public class DynamicConfigurationCreator {
         sftpSessionFactory.setPrivateKey(sftpPollerConfiguration.getPrivateKey());
         sftpSessionFactory.setPrivateKeyPassphrase(sftpPollerConfiguration.getPrivateKeyPassphrase());
         sftpSessionFactory.setPort(sftpPollerConfiguration.getPort());
-        sftpSessionFactory.setServerAliveInterval(30_000);
         sftpSessionFactory.setTimeout(30_000);
         sftpSessionFactory.setAllowUnknownKeys(true);
 
@@ -162,7 +161,7 @@ public class DynamicConfigurationCreator {
             cachingSessionFactory = new CachingSessionFactory(sessionFactory, sessionCacheSize);
 
         } else {
-            cachingSessionFactory = new LoggingSessionFactory(restHighLevelClient, indexPattern, sessionFactory, sessionCacheSize,
+            cachingSessionFactory = new LoggingSessionFactory(elasticsearchClient, indexPattern, sessionFactory, sessionCacheSize,
                     connectionUsername, connectionHost);
         }
         cachingSessionFactory.setSessionWaitTimeout(2000);

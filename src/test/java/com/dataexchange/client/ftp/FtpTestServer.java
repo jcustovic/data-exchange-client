@@ -10,12 +10,12 @@ import org.apache.ftpserver.usermanager.ClearTextPasswordEncryptor;
 import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.ftpserver.usermanager.impl.WritePermission;
-import org.junit.runner.RunWith;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+
 
 import java.io.File;
 import java.nio.file.Files;
@@ -26,7 +26,7 @@ import static org.assertj.core.util.Arrays.isNullOrEmpty;
 
 @SpringBootTest
 @DirtiesContext
-@RunWith(SpringRunner.class)
+
 public abstract class FtpTestServer {
 
     static final Logger LOGGER = LoggerFactory.getLogger(FtpTestServer.class);

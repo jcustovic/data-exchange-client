@@ -1,23 +1,23 @@
 package com.dataexchange.client.config.aws;
 
-import com.amazonaws.regions.Regions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import software.amazon.awssdk.regions.Region;
 
 
 @ConfigurationProperties("aws.credentials")
 public class AWSCredentials {
 
-    private Regions region;
+    private String region;
     private String accessKey;
     private String secretKey;
     private String stsRoleArn;
     private String roleSessionName;
 
-    public Regions getRegion() {
-        return region;
+    public Region getRegion() {
+        return Region.of(region);
     }
 
-    public void setRegion(Regions region) {
+    public void setRegion(String region) {
         this.region = region;
     }
 

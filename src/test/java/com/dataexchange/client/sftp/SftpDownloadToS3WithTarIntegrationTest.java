@@ -1,8 +1,10 @@
 package com.dataexchange.client.sftp;
 
 import org.assertj.core.util.Arrays;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import java.util.concurrent.TimeUnit;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
@@ -12,10 +14,12 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("download-sftp-s3-tar")
+@Disabled("Requires external S3 infrastructure")
 public class SftpDownloadToS3WithTarIntegrationTest extends SftpDownloadToS3TestAbstract {
 
-    @Test(timeout = 50_000)
-//    @Ignore
+    @Test
+    @Timeout(value = 50_000, unit = TimeUnit.MILLISECONDS)
+//    @Disabled
     public void whenInputRemoteTarFile_shouldBeDownloadedAndPushedToS3() throws InterruptedException, IOException {
         File.createTempFile("image666", ".tar", new File(realRemoteFolder));
         TimeUnit.SECONDS.sleep(40);

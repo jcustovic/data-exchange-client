@@ -3,8 +3,8 @@ package com.dataexchange.client.ftp;
 import com.dataexchange.client.config.model.DownloadPollerConfiguration;
 import com.dataexchange.client.config.model.MainConfiguration;
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
@@ -21,7 +21,7 @@ public abstract class FtpDownloadTestAbstract extends FtpTestServer {
     File outputFile;
     DownloadPollerConfiguration downloadPoller;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setup();
         downloadPoller = config.getFtps().get(0).getDownloadPollers().get(0);
@@ -38,7 +38,7 @@ public abstract class FtpDownloadTestAbstract extends FtpTestServer {
         outputFile = new File(outputFolder + File.separator + remoteSourceFile.getName());
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         super.teardown();
         cleanupWorkingDirs();

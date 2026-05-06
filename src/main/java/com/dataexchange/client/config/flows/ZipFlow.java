@@ -7,8 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.integration.dsl.AggregatorSpec;
+import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlowBuilder;
-import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.dsl.context.IntegrationFlowContext;
 import org.springframework.integration.file.dsl.FileInboundChannelAdapterSpec;
@@ -18,9 +18,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.function.Consumer;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 @Component
 public class ZipFlow {
@@ -34,9 +33,9 @@ public class ZipFlow {
 
     public void setup(String inputFolder, String configName, ZipConfiguration config) {
 
-        IntegrationFlowBuilder zipFlow = IntegrationFlows
+        IntegrationFlowBuilder zipFlow = IntegrationFlow
                 .from(inboundAdapter(inputFolder),
-                        conf -> conf.poller(Pollers.fixedRate(10, SECONDS).maxMessagesPerPoll(config.getMinItemsToZip())))
+                        conf -> conf.poller(Pollers.fixedRate(Duration.ofSeconds(10)).maxMessagesPerPoll(config.getMinItemsToZip())))
                 .enrichHeaders(h -> h.header("file_type", "jpg"))
                 .aggregate(customAggregator(config.getMinItemsToZip()))
                 .channel("after_aggregation-channel")

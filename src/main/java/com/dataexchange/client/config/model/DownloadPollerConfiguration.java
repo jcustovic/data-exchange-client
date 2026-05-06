@@ -2,7 +2,7 @@ package com.dataexchange.client.config.model;
 
 import com.dataexchange.client.infrastructure.util.Conditional;
 
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 @Conditional(selected = "fileType", exists = false, required = {"remoteInputFolder"})
 @Conditional(selected = "fileType", exists = true, required = {})

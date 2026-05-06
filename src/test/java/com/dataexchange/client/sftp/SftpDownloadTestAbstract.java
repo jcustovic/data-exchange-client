@@ -3,8 +3,8 @@ package com.dataexchange.client.sftp;
 import com.dataexchange.client.config.model.MainConfiguration;
 import com.dataexchange.client.config.model.DownloadPollerConfiguration;
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
@@ -21,7 +21,7 @@ public abstract class SftpDownloadTestAbstract extends SftpTestServer {
     File outputFile;
     DownloadPollerConfiguration downloadPoller;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setup();
         downloadPoller = config.getSftps().get(0).getDownloadPollers().get(0);
@@ -41,7 +41,7 @@ public abstract class SftpDownloadTestAbstract extends SftpTestServer {
         FileUtils.cleanDirectory(new File(outputFolder));
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         super.teardown();
         cleanupWorkingDirs();

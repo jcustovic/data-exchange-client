@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    consul:
+      enabled: false
+    aws:
+      parameterstore:
+        enabled: false
+  config:
+    import: "optional:consul:"

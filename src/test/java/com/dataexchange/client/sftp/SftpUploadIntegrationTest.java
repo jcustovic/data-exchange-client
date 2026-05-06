@@ -1,14 +1,16 @@
 package com.dataexchange.client.sftp;
 
 import com.dataexchange.client.config.model.MainConfiguration;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
+
+
 import com.dataexchange.client.config.model.UploadPollerConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -27,7 +29,7 @@ public class SftpUploadIntegrationTest extends SftpTestServer {
     private String processedFolder;
     private File sourceFile;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setup();
         UploadPollerConfiguration uploadPoller = mainConfiguration.getSftps().get(0).getUploadPollers().get(0);
@@ -41,14 +43,15 @@ public class SftpUploadIntegrationTest extends SftpTestServer {
         sourceFile = File.createTempFile("anyfile", ".txt", new File(inputFolder));
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         super.teardown();
         FileUtils.cleanDirectory(new File(inputFolder));
         FileUtils.cleanDirectory(new File(processedFolder));
     }
 
-    @Test(timeout = 20000)
+    @Test
+    @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
     public void whenInputFile_shouldBeUploadedAndMovedToProcessedFolder() throws InterruptedException {
         if (waitForFilesInFolder(this.processedFolder)) {
             assertThat(Arrays.isNullOrEmpty(new File(inputFolder).listFiles())).isTrue();

@@ -6,8 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.validation.annotation.Validated;
 
-import javax.annotation.PostConstruct;
-import javax.validation.Valid;
+import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 

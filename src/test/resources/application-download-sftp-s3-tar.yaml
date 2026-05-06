@@ -10,7 +10,16 @@ app:
         -
           name: testSftpDownloadPoller
           download-folder: ${java.io.tmpdir}/sftpClient/downloading
-          output-folder:  ${java.io.tmpdir}/sftpClient/queue
+          output-folder: ${java.io.tmpdir}/sftpClient/queue
           remote-input-folder: test-sftp/remote-input
           regex-filter: .+\.tar
           poll-interval-milliseconds: 5000
+          s3-configuration:
+            input-folder: ${java.io.tmpdir}/sftpClient/queue
+            bucketName: test-bucket
+            aws-region: eu-west-1
+            aws-account: 123456789
+            aws-accessKey: test
+            aws-secretKey: test
+            aws-role: arn:aws:iam::123456789:role/test
+            server-side-encryption: true

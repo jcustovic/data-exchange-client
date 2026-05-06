@@ -3,13 +3,15 @@ package com.dataexchange.client;
 import com.dataexchange.client.domain.ConnectionMonitor;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Arrays;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.integration.message.AdviceMessage;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.integration.transformer.HeaderEnricher;
@@ -17,7 +19,7 @@ import org.springframework.integration.transformer.support.StaticHeaderValueMess
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+
 
 import java.io.File;
 import java.nio.file.Files;
@@ -28,7 +30,7 @@ import static com.dataexchange.client.sftp.SftpTestServer.waitForFilesInFolder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@RunWith(SpringRunner.class)
+
 @ActiveProfiles("upload-sftp")
 public class DataExchangeClientComponentTest {
 
@@ -42,10 +44,10 @@ public class DataExchangeClientComponentTest {
     private File processedFile;
     private Path tempDir;
 
-    @MockBean
+    @MockitoBean
     private ConnectionMonitor connectionMonitor;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         tempDir = Files.createTempDirectory("data_exchange_test");
         inputFolder = tempDir.toAbsolutePath().toString() + File.separator + "input";
@@ -57,13 +59,14 @@ public class DataExchangeClientComponentTest {
         sourceFile = File.createTempFile("anyfile", ".txt", new File(inputFolder));
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         processedFile.delete();
         FileUtils.deleteDirectory(tempDir.toFile());
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void whenFileSentToMoveFileChannel_itIsMovedToProcessedFolder() throws InterruptedException {
         Message<File> message = MessageBuilder.withPayload(sourceFile).build();
 

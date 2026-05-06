@@ -1,11 +1,11 @@
 package com.dataexchange.client.infrastructure.integration.filters;
 
-import com.jcraft.jsch.ChannelSftp;
+import org.apache.sshd.sftp.client.SftpClient.DirEntry;
 import org.springframework.integration.file.filters.AbstractFileListFilter;
 
 import java.util.HashSet;
 
-public class SftpSemaphoreFileFilter extends AbstractFileListFilter<ChannelSftp.LsEntry> {
+public class SftpSemaphoreFileFilter extends AbstractFileListFilter<DirEntry> {
 
     private final Object monitor = new Object();
 
@@ -17,7 +17,7 @@ public class SftpSemaphoreFileFilter extends AbstractFileListFilter<ChannelSftp.
     }
 
     @Override
-    public boolean accept(ChannelSftp.LsEntry file) {
+    public boolean accept(DirEntry file) {
         synchronized (this.monitor) {
             if (file.getFilename().endsWith(semaphoreSuffix)) {
                 existingSemaphoreFiles.add(file.getFilename());

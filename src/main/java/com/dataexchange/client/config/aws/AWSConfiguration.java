@@ -1,26 +1,22 @@
 package com.dataexchange.client.config.aws;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.aws.autoconfigure.paramstore.AwsParamStoreBootstrapConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
-import static com.amazonaws.util.StringUtils.isNullOrEmpty;
+import static org.springframework.util.StringUtils.hasText;
 
 
 @Configuration
 @EnableConfigurationProperties(AWSCredentials.class)
-@AutoConfigureBefore(value = AwsParamStoreBootstrapConfiguration.class)
 @ConditionalOnProperty(
         prefix = "aws.credentials",
         name = {"use-static-provider"}
@@ -28,32 +24,33 @@ import static com.amazonaws.util.StringUtils.isNullOrEmpty;
 public class AWSConfiguration {
 
     @Bean
-    public AWSSimpleSystemsManagement ssmClient(AWSCredentials credentials) {
-        return AWSSimpleSystemsManagementClient.builder()
-                .withCredentials(buildCredentialsProvider(credentials))
-                .withRegion(credentials.getRegion())
+    public SsmClient ssmClient(AWSCredentials credentials) {
+        return SsmClient.builder()
+                .credentialsProvider(buildCredentialsProvider(credentials))
+                .region(credentials.getRegion())
                 .build();
     }
 
-    private AWSCredentialsProvider buildCredentialsProvider(AWSCredentials credentials) {
-        if (isNullOrEmpty(credentials.getStsRoleArn())) {
+    private AwsCredentialsProvider buildCredentialsProvider(AWSCredentials credentials) {
+        if (!hasText(credentials.getStsRoleArn())) {
             return buildDefaultCredentialsProvider(credentials);
         } else {
-            return new STSAssumeRoleSessionCredentialsProvider.Builder(credentials.getStsRoleArn(), credentials.getRoleSessionName())
-                    .withStsClient(buildSecurityTokenService(credentials))
+            StsClient stsClient = StsClient.builder()
+                    .credentialsProvider(buildDefaultCredentialsProvider(credentials))
+                    .region(credentials.getRegion())
+                    .build();
+            return StsAssumeRoleCredentialsProvider.builder()
+                    .stsClient(stsClient)
+                    .refreshRequest(AssumeRoleRequest.builder()
+                            .roleArn(credentials.getStsRoleArn())
+                            .roleSessionName(credentials.getRoleSessionName())
+                            .build())
                     .build();
         }
     }
 
-    private AWSSecurityTokenService buildSecurityTokenService(AWSCredentials credentials) {
-        return AWSSecurityTokenServiceClientBuilder.standard()
-                .withCredentials(buildDefaultCredentialsProvider(credentials))
-                .withRegion(credentials.getRegion())
-                .build();
+    private StaticCredentialsProvider buildDefaultCredentialsProvider(AWSCredentials credentials) {
+        return StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(credentials.getAccessKey(), credentials.getSecretKey()));
     }
-
-    private AWSCredentialsProvider buildDefaultCredentialsProvider(AWSCredentials credentials) {
-        return new AWSStaticCredentialsProvider(new BasicAWSCredentials(credentials.getAccessKey(), credentials.getSecretKey()));
-    }
-
 }

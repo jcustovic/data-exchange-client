@@ -9,8 +9,8 @@ import com.dataexchange.client.infrastructure.integration.filters.FtpSemaphoreFi
 import org.aopalliance.aop.Advice;
 import org.apache.commons.net.ftp.FTPFile;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlowBuilder;
-import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.Pollers;
 import org.springframework.integration.dsl.StandardIntegrationFlow;
 import org.springframework.integration.dsl.context.IntegrationFlowContext;
@@ -46,7 +46,7 @@ public class FtpFlow {
 
     public void downloadSetup(CachingSessionFactory ftpSessionFactory, DownloadPollerConfiguration config,
                               String connectionName, String username) {
-        IntegrationFlowBuilder ftpFlowBuilder = IntegrationFlows
+        IntegrationFlowBuilder ftpFlowBuilder = IntegrationFlow
                 .from(ftpInboundAdapter(ftpSessionFactory, config), conf -> conf.poller(configureDownloadPoller(config)
                         .maxMessagesPerPoll(200)
                         .errorHandler(e -> connectionMonitorHelper.handleConnectionError(connectionName, e))
@@ -66,7 +66,7 @@ public class FtpFlow {
 
     public void uploadSetup(CachingSessionFactory ftpSessionFactory, UploadPollerConfiguration config,
                             String connectionName, String username) {
-        StandardIntegrationFlow ftpFlow = IntegrationFlows
+        StandardIntegrationFlow ftpFlow = IntegrationFlow
                 .from(fileMessageSource(config.getInputFolder(), config.getRegexFilter()),
                         conf -> conf.poller(Pollers.fixedRate(10000).maxMessagesPerPoll(-1)))
                 .enrichHeaders(h -> h.header("destination_folder", config.getProcessedFolder())

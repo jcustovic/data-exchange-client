@@ -1,11 +1,12 @@
 package com.dataexchange.client.infrastructure.integration.filters;
 
-import com.jcraft.jsch.ChannelSftp;
+import org.apache.sshd.sftp.client.SftpClient.Attributes;
+import org.apache.sshd.sftp.client.SftpClient.DirEntry;
 import org.springframework.integration.file.filters.AbstractFileListFilter;
 
-import java.util.Date;
+import java.time.Instant;
 
-public class SftpLastModifiedOlderThanFileFilter extends AbstractFileListFilter<ChannelSftp.LsEntry> {
+public class SftpLastModifiedOlderThanFileFilter extends AbstractFileListFilter<DirEntry> {
 
     private final int minutes;
 
@@ -14,14 +15,13 @@ public class SftpLastModifiedOlderThanFileFilter extends AbstractFileListFilter<
     }
 
     @Override
-    public boolean accept(ChannelSftp.LsEntry file) {
-        int modifiedTimeInSec = file.getAttrs().getMTime();
-        if (modifiedTimeInSec > 0) {
-            long currentSeconds = new Date().getTime() / 1000;
-
-            return (currentSeconds > modifiedTimeInSec + (minutes * 60));
+    public boolean accept(DirEntry file) {
+        Attributes attrs = file.getAttributes();
+        Instant modifyTime = attrs.getModifyTime().toInstant();
+        if (modifyTime != null) {
+            Instant threshold = Instant.now().minusSeconds(minutes * 60L);
+            return modifyTime.isBefore(threshold);
         }
-
         return true;
     }
 }

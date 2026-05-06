@@ -1,6 +1,6 @@
 package com.dataexchange.client.config.model;
 
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 public class S3Configuration {
 

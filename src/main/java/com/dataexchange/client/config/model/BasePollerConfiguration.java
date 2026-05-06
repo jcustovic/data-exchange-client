@@ -3,8 +3,8 @@ package com.dataexchange.client.config.model;
 import com.dataexchange.client.infrastructure.util.Conditional;
 import org.springframework.util.StringUtils;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.ArrayList;
 import java.util.List;
 

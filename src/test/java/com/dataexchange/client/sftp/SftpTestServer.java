@@ -4,14 +4,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
-import org.apache.sshd.server.subsystem.sftp.SftpSubsystemFactory;
+import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.assertj.core.util.Arrays;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
+
 
 import java.io.File;
 import java.nio.file.Files;
@@ -20,7 +20,7 @@ import java.util.Collections;
 
 @SpringBootTest
 @DirtiesContext
-@RunWith(SpringRunner.class)
+
 public abstract class SftpTestServer {
 
     private static final String SFTP_SERVER_FOLDER = "sftp-server";
@@ -29,7 +29,7 @@ public abstract class SftpTestServer {
     private SshServer sshd;
     File sftpRootFolder;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         sshd = SshServer.setUpDefaultServer();
         sshd.setPort(PORT);
@@ -43,7 +43,7 @@ public abstract class SftpTestServer {
         sshd.start();
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         sshd.stop();
         while (!sshd.isClosed()) {
